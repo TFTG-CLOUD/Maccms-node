@@ -1,0 +1,157 @@
+doctype html
+html
+  head
+    block seo
+      meta(http-equiv="Content-Type" content="text/html; charset=utf-8")
+      meta(name="renderer" content="webkit|ie-comp|ie-stand")
+      meta(name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0")
+      title #{seo ? seo.title : maccms.siteName}
+      meta(name="keywords" content=seo ? seo.keywords || '' : '')
+      meta(name="description" content=seo ? seo.description || '' : '')
+    link(rel="shortcut icon" href="/static/img/favicon.ico" type="image/x-icon")
+    link(rel="stylesheet" href="/static/font/iconfont.css" type="text/css")
+    link(rel="stylesheet" href="/static/css/stui_block.css" type="text/css")
+    link(rel="stylesheet" href="/static/css/stui_block_color.css" type="text/css")
+    link(rel="stylesheet" href="/static/css/stui_default.css" type="text/css")
+    script(type="text/javascript" src="/static/js/jquery.min.js")
+    script(type="text/javascript" src="/static/js/stui_default.js")
+    script(type="text/javascript" src="/static/js/stui_block.js")
+    style.
+      :root {
+        --tg-page-gap: 18px;
+        --tg-mobile-gap: 14px;
+        --tg-card-radius: 16px;
+        --tg-soft-border: rgba(255, 153, 0, 0.14);
+        --tg-soft-shadow: 0 12px 32px rgba(15, 23, 42, 0.05);
+        --tg-header-offset: 78px;
+      }
+      body {
+        background: #f6f6f6;
+        padding-top: 0;
+      }
+      .site-main {
+        padding: calc(var(--tg-header-offset) + 18px) 0 28px;
+      }
+      .stui-pannel {
+        margin-bottom: var(--tg-page-gap);
+      }
+      .stui-pannel:last-child {
+        margin-bottom: 0;
+      }
+      .stui-pannel-box {
+        border-radius: var(--tg-card-radius);
+        overflow: hidden;
+      }
+      @media (max-width: 767px) {
+        :root {
+          --tg-header-offset: 94px;
+        }
+        .site-main {
+          padding: calc(var(--tg-header-offset) + 6px) 0 24px;
+        }
+        .stui-header__top .container,
+        main.site-main > .container,
+        body > .container {
+          padding-left: calc(var(--tg-mobile-gap) + env(safe-area-inset-left, 0px));
+          padding-right: calc(var(--tg-mobile-gap) + env(safe-area-inset-right, 0px));
+        }
+        .stui-header__top .container > .row,
+        main.site-main > .container > .row,
+        body > .container > .row {
+          margin-left: 0;
+          margin-right: 0;
+        }
+        main.site-main > .container > .row > [class*="col-"],
+        body > .container > .row > [class*="col-"] {
+          padding-left: 0;
+          padding-right: 0;
+        }
+        .stui-pannel {
+          margin-bottom: 14px;
+        }
+        .stui-pannel-box {
+          border-radius: 14px;
+        }
+        .stui-screen__list.type-slide {
+          display: flex;
+          flex-wrap: nowrap;
+          gap: 8px;
+          overflow-x: auto;
+          overflow-y: hidden;
+          padding-bottom: 6px;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+        }
+        .stui-screen__list.type-slide::-webkit-scrollbar {
+          display: none;
+        }
+        .stui-screen__list.type-slide > li {
+          float: none;
+          flex: 0 0 auto;
+          white-space: nowrap;
+        }
+      }
+    script.
+      var maccms = { "path": "#{maccms.urlMode === 'pathinfo' ? '/index.php/' : '/'}", "mid": "#{maccms.mid}", "url": "#{maccms.siteUrl}", "wapurl": "#{maccms.siteWapurl || maccms.siteUrl}", "mob_status": "#{maccms.mobStatus || 0}" };
+      var qrTargetUrl = "#{maccms.qrTargetUrl}";
+    block extraHead
+  body
+    header.stui-header__top.clearfix#header-top
+      .container
+        .row
+          .stui-header_bd.clearfix
+            .stui-header__logo
+              a.logo(href="/")
+            .stui-header__side
+              ul.stui-header__user
+                if maccms.userStatus
+                  li: a.mac_user(href="javascript:;"): i.icon.iconfont.icon-account
+                else
+                  li
+                    a(href="javascript:;"): i.icon.iconfont.icon-clock
+                    .dropdown.history
+                      h5.margin-0.text-muted
+                        a.historyclean.text-muted.pull-right(href="") 清空
+                        | 播放记录
+                      ul.clearfix#stui_history
+              .stui-header__search
+                form#search(name="search" method="get" action=macUrl("/vod/search.html"))
+                  input(type="text" name="wd" class="mac_wd form-control" value=param.wd || "" placeholder="请输入关键词..." autocomplete="off")
+                  button.submit#searchbutton(type="submit"): i.icon.iconfont.icon-search
+            ul.stui-header__menu.type-slide
+              li(class=(homeActive ? 'active' : '')): a(href=macUrl("/")) 首页
+              each t in types
+                li(class=(t.active ? 'active' : '')): a(href=macUrl("/vod/show/id/" + t._id + ".html"))= t.name
+    script.
+      $(".stui-header__user li,.stui-header__menu li").click(function(){
+        $(this).find(".dropdown").toggle();
+        $(".MacPlayer").toggle();
+      });
+      $(".stui-header__logo .logo").css("background","url(#{maccms.siteLogo}) no-repeat");
+
+    main.site-main
+      .container
+        .row
+          block content
+
+    .container
+      .row
+        .stui-foot.clearfix
+          if maccms.friendLinks && maccms.friendLinks.length
+            p.text-muted.text-center.hidden-xs
+              each link, idx in maccms.friendLinks
+                a.text-muted(href=link.url target="_blank" rel="noopener noreferrer")= link.name
+                if idx < maccms.friendLinks.length - 1
+                  span  | 
+          p.text-muted.text-center= maccms.siteCopyright
+
+    ul.stui-extra.clearfix
+      li: a.backtop(href="javascript:scroll(0,0)" style="display:none"): i.icon.iconfont.icon-less
+      li: a.copylink(href="javascript:;"): i.icon.iconfont.icon-share
+      li.hidden-xs
+        span: i.icon.iconfont.icon-qrcode
+        .sideslip
+          .col-pd
+            p#qrcode
+            p.text-center.font-12 扫码用手机访问
+    .hide #{maccms.siteTj || ''}

@@ -1,0 +1,9 @@
+extends ../layout
+
+block content
+  .plot-container
+    h2= vod.name + ' 剧情介绍'
+    if vod.content
+      .content !{vod.content}
+    else
+      p 暂无剧情介绍

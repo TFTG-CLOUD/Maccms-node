@@ -1,0 +1,27 @@
+extends ../layout
+include ../public/paging
+
+block content
+  .search-header
+    h2 搜索: #{wd || '请输入关键词'}
+    form.search-form(action=macUrl("/vod/search.html") method="get")
+      input(type="text" name="wd" value=wd placeholder="搜索影片...")
+      button(type="submit") 搜索
+
+  if list && list.length
+    .vod-list
+      each item in list
+        .vod-item
+          a(href=macUrl("/vod/detail/id/" + item._id + ".html"))
+            img(src=item.pic || '/images/nopic.png' alt=item.name)
+          .vod-info
+            a.title(href=macUrl("/vod/detail/id/" + item._id + ".html"))= item.name
+            .meta
+              if item.type
+                span= item.type.name
+              span= item.area || ''
+              span= item.year || ''
+  else if wd
+    .no-result 没有找到相关影片
+
+  +paging(__PAGING__)

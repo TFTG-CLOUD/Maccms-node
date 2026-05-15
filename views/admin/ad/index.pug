@@ -1,0 +1,127 @@
+extends ../layout
+block content
+  - const playMetaText = (setting && setting.playMetaText) || defaults.playMetaText
+  - const playBetweenBanner = (setting && setting.playBetweenBanner) || defaults.playBetweenBanner
+  h2 广告位管理
+  p(style="margin:10px 0 18px;color:#666;line-height:1.7")
+    | 当前先管理 2 个播放页广告位。
+    br
+    | 文本广告位支持多行 HTML 代码；图片广告位会在上传时自动读取图片宽高并保存，用于前台预留比例避免页面抖动。
+
+  form#ad-config-form(method="POST" action="/admin/ad" style="display:flex;flex-direction:column;gap:18px")
+    .seo-card(style="background:#fff;padding:20px;border-radius:6px")
+      h3(style="margin-bottom:8px") 播放页信息下方文本广告
+      p(style="margin-bottom:16px;color:#666") 显示在播放页标题信息区，位于“类型/地区/年份”下方，支持 HTML 代码。
+      .form-group
+        label
+          input(type="checkbox" name="play_meta_text_enabled" checked=playMetaText.enabled style="width:auto;margin-right:8px")
+          | 启用该广告位
+      .form-group
+        label HTML 代码
+        textarea(name="play_meta_text_html" rows="8" placeholder='<a href="https://example.com" target="_blank" rel="noopener noreferrer">这是广告文案</a><br><span>第二行说明</span>')= playMetaText.html || defaults.playMetaText.html
+      .form-group
+        label 预览
+        .preview-box(style="padding:14px;border:1px dashed #d9d9d9;border-radius:6px;background:#fafafa")
+          if playMetaText.html
+            != playMetaText.html
+          else
+            span(style="color:#999") 暂无内容
+
+    .seo-card(style="background:#fff;padding:20px;border-radius:6px")
+      h3(style="margin-bottom:8px") 播放区与播放地址之间图片广告
+      p(style="margin-bottom:16px;color:#666") 支持正方形、横幅、长条图。上传后会保存图片宽高，前台按比例占位，减少广告图片加载时的页面跳动。
+      .form-group
+        label
+          input(type="checkbox" name="play_between_banner_enabled" checked=playBetweenBanner.enabled style="width:auto;margin-right:8px")
+          | 启用该广告位
+      .form-group
+        label 跳转链接
+        input(type="text" name="play_between_banner_link" placeholder="https://example.com" value=playBetweenBanner.link || '')
+      .form-group
+        label 图片 alt 文本
+        input(type="text" name="play_between_banner_alt" placeholder="广告" value=playBetweenBanner.alt || '')
+      .form-group
+        label
+          input(type="checkbox" name="play_between_banner_open_in_new_tab" checked=(playBetweenBanner.openInNewTab !== false) style="width:auto;margin-right:8px")
+          | 新窗口打开
+      .form-group
+        label 上传广告图
+        input#ad-banner-file(type="file" accept="image/*")
+        input(type="hidden" name="play_between_banner_image_data" value="")
+        input(type="hidden" name="play_between_banner_image_name" value="")
+        input(type="hidden" name="play_between_banner_width" value=playBetweenBanner.width || 0)
+        input(type="hidden" name="play_between_banner_height" value=playBetweenBanner.height || 0)
+        input(type="hidden" name="play_between_banner_current_image" value=playBetweenBanner.image || '')
+      .form-group
+        label
+          input#remove-banner-image(type="checkbox" name="play_between_banner_remove_image" value="1" style="width:auto;margin-right:8px")
+          | 清空当前图片
+      .form-group
+        label 当前图片信息
+        p#banner-meta(style="color:#666;margin-bottom:10px")
+          if playBetweenBanner.image
+            | #{playBetweenBanner.width || 0} × #{playBetweenBanner.height || 0}，#{playBetweenBanner.image}
+          else
+            | 暂无图片
+        .preview-box(style="padding:14px;border:1px dashed #d9d9d9;border-radius:6px;background:#fafafa")
+          if playBetweenBanner.image
+            img#banner-preview(src=playBetweenBanner.image alt=playBetweenBanner.alt || '广告预览' style="display:block;max-width:100%;height:auto;border-radius:6px")
+          else
+            img#banner-preview(src="" alt="广告预览" style="display:none;max-width:100%;height:auto;border-radius:6px")
+            span#banner-empty(style="color:#999") 暂无图片
+
+    div
+      button.btn.btn-primary(type="submit") 保存广告配置
+
+  script.
+    (function() {
+      var fileInput = document.getElementById('ad-banner-file');
+      var imageDataInput = document.querySelector('input[name="play_between_banner_image_data"]');
+      var imageNameInput = document.querySelector('input[name="play_between_banner_image_name"]');
+      var widthInput = document.querySelector('input[name="play_between_banner_width"]');
+      var heightInput = document.querySelector('input[name="play_between_banner_height"]');
+      var preview = document.getElementById('banner-preview');
+      var meta = document.getElementById('banner-meta');
+      var empty = document.getElementById('banner-empty');
+      var removeBox = document.getElementById('remove-banner-image');
+
+      if (!fileInput) return;
+
+      fileInput.addEventListener('change', function(event) {
+        var file = event.target.files && event.target.files[0];
+        if (!file) return;
+
+        var reader = new FileReader();
+        reader.onload = function(loadEvent) {
+          var dataUrl = loadEvent.target.result;
+          var img = new Image();
+          img.onload = function() {
+            imageDataInput.value = dataUrl;
+            imageNameInput.value = file.name || '';
+            widthInput.value = img.naturalWidth || 0;
+            heightInput.value = img.naturalHeight || 0;
+            preview.src = dataUrl;
+            preview.style.display = 'block';
+            if (empty) empty.style.display = 'none';
+            meta.textContent = (img.naturalWidth || 0) + ' × ' + (img.naturalHeight || 0) + '，' + (file.name || '');
+            if (removeBox) removeBox.checked = false;
+          };
+          img.src = dataUrl;
+        };
+        reader.readAsDataURL(file);
+      });
+
+      if (removeBox) {
+        removeBox.addEventListener('change', function() {
+          if (!removeBox.checked) return;
+          imageDataInput.value = '';
+          imageNameInput.value = '';
+          widthInput.value = '0';
+          heightInput.value = '0';
+          preview.src = '';
+          preview.style.display = 'none';
+          if (empty) empty.style.display = '';
+          meta.textContent = '保存后将清空当前图片';
+        });
+      }
+    })();

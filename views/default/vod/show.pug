@@ -1,0 +1,29 @@
+extends ../layout
+include ../public/paging
+
+block content
+  .show-header
+    if type
+      h2 #{type.name}
+    else
+      h2 筛选结果
+
+  .filter-bar
+    .filter-row
+      span.label 分类:
+      a(href=req.path.replace(/(id\/)(\d+)/, '') class=(!param.id ? 'active' : '')) 全部
+
+  .vod-list
+    each item in list
+      .vod-item
+        a(href=macUrl("/vod/detail/id/" + item._id + ".html"))
+          img(src=item.pic || '/images/nopic.png' alt=item.name)
+        .vod-info
+          a.title(href=macUrl("/vod/detail/id/" + item._id + ".html"))= item.name
+          .meta
+            if item.type
+              span= item.type.name
+            span= item.area || ''
+            span= item.year || ''
+
+  +paging(__PAGING__)

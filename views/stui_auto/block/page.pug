@@ -1,0 +1,13 @@
+//- Source: page.html
+//- ⚠ Manual work: 1 item(s)
+//-
+//-   MANUAL: {maccms:foreach name="$__PAGING__.page_num" id="num"} needs controller pre-query
+
+if __PAGING__.page_total > 1
+  ul.stui-page.text-center.clearfix
+    li a(href="#{__PAGING__.page_url}") 首页
+    li a(href="#{__PAGING__.page_url}") 上一页
+    //- MANUAL: maccms block (needs controller pre-query)active{{INLINE_ENDIF}}"><a href="#{__PAGING__.page_url}">#{num}</a></li>
+    li.active.visible-xs span.num #{paging.current}/#{paging.totalPages}
+    li a(href="#{__PAGING__.page_url}") 下一页
+    li a(href="#{__PAGING__.page_url}") 尾页

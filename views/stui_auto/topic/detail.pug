@@ -1,0 +1,37 @@
+//- Source: detail.html
+//- ⚠ Manual work: 2 item(s)
+//-
+//-   MANUAL: {maccms:foreach name="$obj.vod_list"} needs controller pre-query
+//-   MANUAL: Complex URL helper: {:mac_url_img($obj.topic_pic)}
+
+html
+  head
+    include ../seo/topic_detail
+    include ../block/include
+  body
+    include ../block/head
+    div.container
+      div.row
+        div.stui-pannel.stui-pannel-bg.clearfix
+          div.stui-pannel-box.clearfix
+            div.col-md-wide-6.col-xs-1
+              div.stui-vodlist__thumb(style="background: url((TODO: mac_url complex call))  no-repeat; background-position:50% 50%; background-size: cover; padding-top: 50%; ")
+            div.col-md-wide-4.col-xs-1
+              h1.topic-title #{vod.name}
+              p.topic-desc.text-muted #{stripHtml(vod.content)}
+              div.share.bdsharebuttonbox.hidden-sm.hidden-xs
+        div.stui-pannel.stui-pannel-bg.clearfix
+          div.stui-pannel-box
+            div.stui-pannel_hd
+              div.stui-pannel__head.clearfix
+                span.more.text-muted.pull-right.hidden-xs 本专题共“#{vod.vod_list}”部影片
+                h3.title
+                  img(src="#{maccms.pathTpl}statics/icon/icon_1.png")  该专题包含的影片
+            div.stui-pannel_bd.clearfix
+              ul.stui-vodlist.clearfix
+                //- MANUAL: maccms block (needs controller pre-query)
+    style(type="text/css")
+      | .topic-title{ margin: 20px 0 20px;}
+      | .topic-desc{ margin-bottom: 20px;}
+      | @media (max-width: 1024px){.topic-title{ margin: 0 0 10px; font-size: 16px;}.topic-desc{ margin: 0;}}
+    include ../block/foot

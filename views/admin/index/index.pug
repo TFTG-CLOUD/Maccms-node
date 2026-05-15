@@ -1,0 +1,13 @@
+extends ../layout
+block content
+  h2 系统概览
+  .stats(style="display:flex;gap:20px;margin-top:20px")
+    .stat-card(style="background:#fff;padding:20px;border-radius:4px;flex:1")
+      h3 影视总数
+      p(style="font-size:32px;color:#1890ff")= vodCount
+    .stat-card(style="background:#fff;padding:20px;border-radius:4px;flex:1")
+      h3 今日新增
+      p(style="font-size:32px;color:#52c41a")= todayCount
+    .stat-card(style="background:#fff;padding:20px;border-radius:4px;flex:1")
+      h3 采集源
+      p(style="font-size:32px;color:#faad14")= sourceCount

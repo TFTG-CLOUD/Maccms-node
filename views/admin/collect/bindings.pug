@@ -1,0 +1,39 @@
+extends ../layout
+block content
+  h2 分类绑定 - #{source.name}
+  p(style="color:#666;margin-bottom:15px") 将采集源的分类ID映射到本地分类，实现数据自动分类。
+  if remoteTypeError
+    p(style="color:#c0392b;margin-bottom:15px") 远端分类拉取失败，当前显示的是已保存绑定数据。错误：#{remoteTypeError}
+
+  form(method="POST" action="/admin/collect/" + source._id + "/bindings" style="background:#fff;padding:20px;border-radius:4px")
+    div#binding-list
+      each b, idx in bindings
+        .form-group(style="display:flex;gap:10px;align-items:center")
+          input(type="text" name="bindings[" + idx + "][sourceTypeId]" value=b.sourceTypeId placeholder="采集源分类ID" style="flex:1")
+          input(type="text" name="bindings[" + idx + "][sourceTypeName]" value=b.sourceTypeName placeholder="采集源分类名称" style="flex:2")
+          select(name="bindings[" + idx + "][localType]" style="flex:2")
+            option(value="") 选择本地分类
+            each t in types
+              option(value=t._id selected=(String(b.localTypeId || '') === String(t._id)))= t.name
+          button.btn.btn-danger(type="button" onclick="this.parentElement.remove()") 删除
+
+    button.btn.btn-success(type="button" onclick="addBinding()" style="margin-top:10px") + 添加绑定
+    button.btn.btn-primary(type="submit" style="margin-top:10px;margin-left:10px") 保存
+
+    template#binding-tpl
+      .form-group(style="display:flex;gap:10px;align-items:center")
+        input(type="text" name="bindings[N][sourceTypeId]" placeholder="采集源分类ID" style="flex:1")
+        input(type="text" name="bindings[N][sourceTypeName]" placeholder="采集源分类名称" style="flex:2")
+        select(name="bindings[N][localType]" style="flex:2")
+          option(value="") 选择本地分类
+          each t in types
+            option(value=t._id)= t.name
+        button.btn.btn-danger(type="button" onclick="this.parentElement.remove()") 删除
+
+  script.
+    let count = #{bindings.length};
+    function addBinding() {
+      const container = document.getElementById('binding-list');
+      const tpl = document.getElementById('binding-tpl').innerHTML.replace(/N/g, count++);
+      container.insertAdjacentHTML('beforeend', tpl);
+    }

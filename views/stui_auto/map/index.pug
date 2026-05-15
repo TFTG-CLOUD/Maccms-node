@@ -1,0 +1,50 @@
+//- Source: index.html
+//- ⚠ Manual work: 9 item(s)
+//-
+//-   MANUAL: {maccms:type ids="parent" order="asc" by="sort" id="vo" key="key" flag="vod"} needs controller pre-query
+//-   MANUAL: {maccms:foreach name=":explode(',',$vo.type_extend.class)" id="vo2" key="key2"} needs controller pre-query
+//-   MANUAL: {maccms:foreach name=":explode(',',$vo.type_extend.area)" id="vo2" key="key2"} needs controller pre-query
+//-   MANUAL: {maccms:foreach name=":explode(',',$vo.type_extend.year)" id="vo2" key="key2"} needs controller pre-query
+//-   MANUAL: Complex URL helper: {:mac_url_type($vo,[],'show')}
+//-   MANUAL: Complex URL helper: {:mac_url_type($vo2,[],'show')}
+//-   MANUAL: Complex URL helper: {:mac_url_type($vo,['area'=>$param['area'],'lang'=>$param['l
+//-   MANUAL: Complex URL helper: {:mac_url_type($vo,['area'=>'','lang'=>$param['lang'],'year'
+//-   MANUAL: Complex URL helper: {:mac_url_type($vo,['area'=>$vo2,'lang'=>$param['lang'],'yea
+
+html(lang="zh-CN")
+  head
+    meta(http-equiv="Content-Type", content="text/html; charset=utf-8")
+    meta(name="viewport", content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0")
+    title #{maccms.siteName} - 地图
+    meta(name="keywords", content="#{maccms.siteKeywords}")
+    meta(name="description", content="#{maccms.siteDescription}")
+    include ../public/include
+  body.page
+    include ../public/head
+    main.wrapper#main
+      div.content
+        //- MANUAL: maccms block (needs controller pre-query)
+        div.library-box.scroll-box
+          div.scroll-content
+            a.library-item.library-item-first.selected(href="(TODO: mac_url complex call)") 全部类型
+            div.library-list
+              | {maccms:type parent="'.$vo['type_id'].'" order="asc" by="sort" id="vo2" key="key2"}
+              a.library-item(href="(TODO: mac_url complex call)") #{child.name}
+        | {if $vo.type_extend.class}
+        div.library-box.scroll-box
+          div.scroll-content a.library-item.library-item-first.selected(href="(TODO: mac_url complex call)") 全部剧情
+            div.library-list
+              //- MANUAL: maccms block (needs controller pre-query)
+        | {if $vo.type_extend.area}
+        div.library-box.scroll-box
+          div.scroll-content a.library-item.library-item-first.selected(href="(TODO: mac_url complex call)") 全部地区
+            div.library-list
+              //- MANUAL: maccms block (needs controller pre-query)
+        | {if $vo.type_extend.year}
+        div.library-box.scroll-box
+          div.scroll-content a.library-item.library-item-first.selected(href="(TODO: mac_url complex call)") 全部年份
+            div.library-list
+              //- MANUAL: maccms block (needs controller pre-query)
+
+      | {/maccms:type}
+  include ../public/foot

@@ -1,0 +1,25 @@
+extends ../layout
+
+block content
+  .play-container
+    h2= vod.name
+    .player-box
+      if episode
+        iframe(src=episode.url width="100%" height="500" allowfullscreen)
+      else
+        p 暂无播放地址
+
+    .play-info
+      p.current-ep 正在播放: #{episode ? episode.name : '未知'} - #{vod.name}
+      if playServer
+        p.server-name 播放线路: #{playServer.server}
+
+    if vod.playUrls && vod.playUrls.length
+      .play-list
+        h4 切换集数
+        each server, sIdx in vod.playUrls
+          .server-group
+            .server-label= server.server
+            each ep in server.episodes
+              - var active = (sIdx === serverIndex && (ep.nid === (episodeIndex + 1)))
+              a(href=macUrl("/vod/play/id/" + vod._id + "/sid/" + (sIdx + 1) + "/nid/" + (ep.nid || (index + 1)) + ".html") class=active ? 'active' : '')= ep.name || ('第' + (index + 1) + '集')

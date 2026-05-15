@@ -1,0 +1,47 @@
+//- Source: head.html
+//- ⚠ Manual work: 2 item(s)
+//-
+//-   MANUAL: {maccms:type num="10" order="asc" by="sort" ids="parent"} needs controller pre-query
+//-   MANUAL: 2 inline conditionals embedded in text — needs structural Pug refactor
+
+header.stui-header__top.clearfix.new-header#header-top
+  div.container
+    div.row
+      div.stui-header_bd.clearfix
+        div.stui-header__logo
+          a.logo(href="#{maccms.path}")
+        div.stui-header__side
+          ul.stui-header__user
+            if maccms.userStatus === 1
+              li
+                a.mac_user(href="javascript:;") i.icon.iconfont.icon-account
+            else
+              li
+                a(href="javascript:;") i.icon.iconfont.icon-clock
+                div.dropdown.history
+                  h5.margin-0.text-muted
+                    a.historyclean.text-muted.pull-right(href="") 清空
+                    | 播放记录
+                  ul.clearfix#stui_history
+          script(type="text/javascript", src="#{maccms.pathTpl}statics/js/jquery.autocomplete.js")
+          div.stui-header__search
+            form#search(name="search", method="get", action="/vod/search.html", onSubmit="return qrsearch();")
+              input.mac_wd.form-control(type="text", name="wd", value="#{param.wd}", placeholder="请输入关键词...", autocomplete="off")
+              button.submit#searchbutton(type="submit") i.icon.iconfont.icon-search
+        ul.stui-header__menu.type-slide
+          li(class="active") a(href="#{maccms.path}") 首页
+          //- MANUAL: maccms block (needs controller pre-query)class="active"{{INLINE_ENDIF}}><a href="`/vod/show/id/${item._id}.html`">#{item.name}</a></li>
+          // <li {{INLINE_IF:maccms.aid === 30class="active"}}><a href="/topic/index.html">专题</a></li>
+
+          li a(href="/map/index.html") 最近更新
+
+script(type="text/javascript")
+  | $(".stui-header__user li,.stui-header__menu li").click(function(){
+  | $(this).find(".dropdown").toggle();
+  | $(".MacPlayer").toggle();
+  | });
+  | if(stui.browser.useragent.mobile){
+  | $(".stui-header__logo .logo").css("background","url(#{maccms.siteWaplogo || 'statics/img/logo_min.png'}) no-repeat");
+  | }else{
+  | $(".stui-header__logo .logo").css("background","url(#{maccms.siteLogo || 'statics/img/logo.png'}) no-repeat");
+  | }

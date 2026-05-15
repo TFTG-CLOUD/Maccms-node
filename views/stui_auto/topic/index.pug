@@ -1,0 +1,25 @@
+//- Source: index.html
+//- ⚠ Manual work: 2 item(s)
+//-
+//-   MANUAL: {maccms:topic num="18" paging="yes" order="desc" by="time"} needs controller pre-query
+//-   MANUAL: Complex URL helper: {:mac_url_img($vo.topic_pic)}
+
+html
+  head
+    include ../seo/topic_index
+    include ../block/include
+  body
+    include ../block/head
+    div.container
+      div.row
+        div.stui-pannel.stui-pannel-bg.clearfix
+          div.stui-pannel-box
+            div.stui-pannel_hd
+              div.stui-pannel__head.clearfix
+                h3.title
+                  img(src="#{maccms.pathTpl}statics/icon/icon_5.png")  热门专题
+            div.stui-pannel_bd
+              ul.stui-vodlist.clearfix
+                //- MANUAL: maccms block (needs controller pre-query)
+        include ../block/page
+    include ../block/foot

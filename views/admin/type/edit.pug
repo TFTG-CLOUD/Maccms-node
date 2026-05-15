@@ -1,0 +1,80 @@
+extends ../layout
+block content
+  - const typeExtend = type.extend || {}
+  h2 编辑分类
+  form#type-edit-form(style="background:#fff;padding:20px;border-radius:4px;max-width:760px")
+    .form-group
+      label 分类名称
+      input(type="text" name="name" required value=type.name)
+    .form-group
+      label 英文标识
+      input(type="text" name="en" value=type.en || '')
+    .form-group
+      label 所属模块
+      select(name="mid")
+        option(value="1" selected=String(type.mid) === '1') 影视
+        option(value="2" selected=String(type.mid) === '2') 文章
+        option(value="8" selected=String(type.mid) === '8') 漫画
+    .form-group
+      label 父分类
+      select(name="pid")
+        option(value="") 作为一级分类
+        each parent in parentOptions
+          option(
+            value=parent._id
+            selected=String(type.pid == null ? '' : type.pid) === String(parent._id)
+          )= `${parent.moduleLabel} / ${parent.name}${parent.isRoot ? '（一级）' : ''}`
+    .form-group
+      label 排序
+      input(type="number" name="sort" value=type.sort || 0)
+    .form-group
+      label 状态
+      select(name="status")
+        option(value="1" selected=type.status !== false) 启用
+        option(value="0" selected=type.status === false) 禁用
+    .form-group
+      label 模板
+      input(type="text" name="tpl" value=type.tpl || '')
+    .form-group
+      label 详情模板
+      input(type="text" name="tplDetail" value=type.tplDetail || '')
+    .form-group
+      label 播放模板
+      input(type="text" name="tplPlay" value=type.tplPlay || '')
+    .form-group
+      label 下载模板
+      input(type="text" name="tplDown" value=type.tplDown || '')
+    .form-group
+      label Logo
+      input(type="text" name="logo" value=type.logo || '')
+    .form-group
+      label 筛选地区
+      textarea(name="filterArea" placeholder="大陆,香港,美国")= typeExtend.area || ''
+    .form-group
+      label 筛选年份
+      textarea(name="filterYear" placeholder="2026,2025,2024")= typeExtend.year || ''
+    .form-group
+      label 筛选类型
+      textarea(name="filterClass" placeholder="动作,喜剧,剧情")= typeExtend.class || ''
+    .form-group
+      label 筛选语言
+      textarea(name="filterLang" placeholder="国语,英语,中文字幕")= typeExtend.lang || ''
+    button.btn.btn-primary(type="submit") 保存
+    a.btn(href="/admin/type" style="margin-left:8px;background:#f5f5f5;color:#333") 返回
+
+  script.
+    document.getElementById('type-edit-form').addEventListener('submit', async function (event) {
+      event.preventDefault();
+      const formData = new FormData(event.target);
+      const payload = Object.fromEntries(formData.entries());
+      const response = await fetch('/admin/type/#{type._id}', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (response.ok) {
+        location.href = '/admin/type';
+        return;
+      }
+      alert('保存失败，请稍后重试');
+    });

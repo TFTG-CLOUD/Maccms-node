@@ -1,0 +1,55 @@
+extends ../layout
+block content
+  -
+    const rangeLabelMap = {
+      today: '今天',
+      '1day': '1天内',
+      '2day': '2天内',
+      week: '本周',
+      month: '本月',
+      '3month': '最近3月',
+      all: '全量'
+    };
+    const hitScopeLabelMap = {
+      day: '日榜',
+      week: '周榜',
+      month: '月榜'
+    };
+  h2 定时任务管理
+  table
+    tr
+      th 任务名称
+      th 描述
+      th 类型
+      th 执行周期
+      th 状态
+      th 上次执行
+      th 操作
+    each item, idx in list
+      - const hours = item.hours ? '每天 ' + item.hours + ' 时' : '手动'
+      - const monthdays = item.monthdays ? '每月 ' + item.monthdays + ' 日' : ''
+      - const scheduleLabel = monthdays ? monthdays + ' ' + hours : hours
+      - const collectRangeLabel = rangeLabelMap[item.param && item.param.type] || (item.param && item.param.type) || '默认'
+      tr
+        td= item.name
+        td= item.des
+        td= item.file === 'collect' ? '采集(' + collectRangeLabel + ')' : (item.file === 'hits' ? '命中重置(' + (hitScopeLabelMap[item.param && item.param.scope] || (item.param && item.param.scope) || '默认') + ')' : item.file)
+        td= scheduleLabel
+        td= item.status ? '启用' : '禁用'
+        td= item.runtime ? new Date(item.runtime).toLocaleString() : '-'
+        td
+          if item.status
+            button.btn.btn-primary(onclick="toggleStatus(" + idx + ", 0)") 禁用
+          else
+            button.btn.btn-success(onclick="toggleStatus(" + idx + ", 1)") 启用
+          button.btn.btn-primary(onclick="runTask(" + idx + ")" style="margin-left:5px") 立即执行
+
+  script.
+    function toggleStatus(idx, status) {
+      fetch('/admin/timming/' + idx, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) }).then(r => r.json()).then(d => {
+        if (d.code === 1) location.reload();
+      });
+    }
+    function runTask(idx) {
+      fetch('/admin/timming/' + idx + '/run', { method: 'POST' }).then(r => r.json()).then(d => alert(d.msg));
+    }

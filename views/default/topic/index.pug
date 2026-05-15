@@ -1,0 +1,10 @@
+extends ../layout
+block content
+  h2 专题列表
+  .vod-list
+    each item in list
+      .vod-item
+        a(href=macUrl("/topic/detail/id/" + item._id + ".html"))
+          img(src=item.pic || '/images/nopic.png' alt=item.name)
+        .vod-info
+          a.title(href=macUrl("/topic/detail/id/" + item._id + ".html"))= item.name

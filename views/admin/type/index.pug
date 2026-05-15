@@ -1,0 +1,85 @@
+extends ../layout
+block content
+  h2 分类管理
+  form(method="POST" action="/admin/type" style="background:#fff;padding:20px;border-radius:4px;margin-bottom:20px")
+    .form-group
+      label 分类名称
+      input(type="text" name="name" required)
+    .form-group
+      label 英文标识
+      input(type="text" name="en")
+    .form-group
+      label 所属模块
+      select(name="mid")
+        option(value="1") 影视
+        option(value="2") 文章
+        option(value="8") 漫画
+    .form-group
+      label 父分类
+      select(name="pid")
+        option(value="") 作为一级分类
+        each parent in parentOptions
+          option(value=parent._id)= `${parent.moduleLabel} / ${parent.name}${parent.isRoot ? '（一级）' : ''}`
+    .form-group
+      label 排序
+      input(type="number" name="sort" value="0")
+    .form-group
+      label 状态
+      select(name="status")
+        option(value="1" selected=true) 启用
+        option(value="0") 禁用
+    .form-group
+      label 筛选地区
+      textarea(name="filterArea" placeholder="大陆,香港,美国")
+    .form-group
+      label 筛选年份
+      textarea(name="filterYear" placeholder="2026,2025,2024")
+    .form-group
+      label 筛选类型
+      textarea(name="filterClass" placeholder="动作,喜剧,剧情")
+    .form-group
+      label 筛选语言
+      textarea(name="filterLang" placeholder="国语,英语,中文字幕")
+    button.btn.btn-primary(type="submit") 添加分类
+
+  table
+    tr
+      th ID
+      th 名称
+      th 层级
+      th 父分类
+      th 模块
+      th 排序
+      th 状态
+      th 筛选项
+      th 操作
+    each item in list
+      - const itemExtend = item.extend || {}
+      tr
+        td= item._id
+        td= item.name
+        td= item.isRoot ? '父分类（一级）' : '子分类'
+        td= item.parentName || '-'
+        td= item.moduleLabel
+        td= item.sort
+        td= item.status ? '启用' : '禁用'
+        td
+          div 地区: #{itemExtend.area || '-'}
+          div 年份: #{itemExtend.year || '-'}
+          div 类型: #{itemExtend.class || '-'}
+          div 语言: #{itemExtend.lang || '-'}
+        td
+          a.btn.btn-primary(href='/admin/type/' + item._id + '/edit' style='margin-right:8px') 编辑
+          button.btn.btn-danger(onclick="del('" + item._id + "')") 删除
+
+  script.
+    function del(id) {
+      if (!confirm('确定删除?')) return;
+      fetch('/admin/type/' + id, { method: 'DELETE' }).then(r => r.json()).then(d => {
+        if (d.code === 1) {
+          location.reload();
+          return;
+        }
+        alert(d.msg || '删除失败');
+      });
+    }

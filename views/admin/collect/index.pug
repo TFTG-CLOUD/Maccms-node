@@ -1,0 +1,357 @@
+extends ../layout
+block content
+  style.
+    .task-log-preview {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: flex-start;
+    }
+    .task-log-preview__text {
+      white-space: pre-line;
+      max-width: 360px;
+      color: #444;
+      line-height: 1.6;
+    }
+    .task-status--stale {
+      color: #d4380d;
+      font-weight: 700;
+    }
+    .task-log-modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.45);
+      z-index: 999;
+      padding: 24px;
+    }
+    .task-log-modal.is-open {
+      display: flex;
+    }
+    .task-log-modal__panel {
+      width: min(900px, 100%);
+      max-height: min(80vh, 820px);
+      background: #fff;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
+      display: flex;
+      flex-direction: column;
+    }
+    .task-log-modal__head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .task-log-modal__body {
+      padding: 18px 20px 20px;
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .task-log-modal__meta {
+      background: #fafafa;
+      border-radius: 8px;
+      padding: 12px 14px;
+      line-height: 1.8;
+      color: #555;
+      white-space: pre-line;
+    }
+    .task-log-modal__content {
+      margin: 0;
+      padding: 14px;
+      background: #0b1220;
+      color: #d8e1f0;
+      border-radius: 8px;
+      white-space: pre-wrap;
+      line-height: 1.7;
+      font-size: 13px;
+      overflow: auto;
+    }
+  h2 采集源管理
+  p(style="color:#666;margin-bottom:16px") 当前仅支持 VOD 采集。手动采集与定时采集都会进入后台任务队列，页面会自动刷新进度。
+
+  form(method="POST" action="/admin/collect" style="background:#fff;padding:20px;border-radius:4px;margin-bottom:20px")
+    .form-group
+      label 采集源名称
+      input(type="text" name="name" required)
+    .form-group
+      label 接口地址
+      input(type="text" name="url" placeholder="http://example.com/api.php/provide/vod/" required)
+    .form-group
+      label 接口类型
+      select(name="type")
+        option(value="json") JSON
+        option(value="xml") XML
+    .form-group
+      label AppID (可选)
+      input(type="text" name="appid")
+    .form-group
+      label AppKey (可选)
+      input(type="text" name="appkey")
+    .form-group
+      label
+        input(type="checkbox" name="bind" value="1")
+        |  绑定模式（匹配到已有数据时更新资料、合并播放源）
+    .form-group
+      label
+        input(type="checkbox" name="status" value="1" checked=true)
+        |  启用采集源
+    button.btn.btn-primary(type="submit") 添加采集源
+
+  table
+    tr
+      th 名称
+      th 地址
+      th 类型
+      th 模式
+      th 状态
+      th 上次采集
+      th 入库统计
+      th 操作
+    each item in list
+      tr
+        td= item.name
+        td(style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap")= item.url
+        td= item.type
+        td= item.bind ? '绑定更新' : '仅新增'
+        td= item.status ? '启用' : '禁用'
+        td= item.lastCollect ? new Date(item.lastCollect).toLocaleString() : '-'
+        td= item.collectNum || 0
+        td
+          div(style="display:flex;flex-wrap:wrap;gap:6px")
+            a.btn.btn-primary(href="/admin/collect/" + item._id + "/bindings") 分类绑定
+            a.btn(href="/admin/collect/" + item._id + "/edit" style="background:#f5f5f5;color:#333") 编辑
+            button.btn.btn-success(type="button" onclick="testCollect('" + item._id + "')") 测试
+            button.btn.btn-primary(type="button" onclick="runCollect('" + item._id + "', '1day')") 1天内
+            button.btn.btn-primary(type="button" onclick="runCollect('" + item._id + "', '2day')") 2天内
+            button.btn.btn-primary(type="button" onclick="runCollect('" + item._id + "', 'week')") 本周
+            button.btn.btn-primary(type="button" onclick="runCollect('" + item._id + "', 'month')") 本月
+            button.btn.btn-primary(type="button" onclick="runCollect('" + item._id + "', 'all')") 全量
+            button.btn.btn-danger(type="button" onclick="delCollect('" + item._id + "')") 删除
+
+  .form-group(style="margin-top:24px")
+    h3(style="margin-bottom:12px") 最近采集任务
+    table
+      thead
+        tr
+          th 采集源
+          th 范围
+          th 触发方式
+          th 状态
+          th 队列
+          th 当前进度
+          th 结果
+          th 最近日志
+          th 创建时间
+          th 心跳时间
+          th 完成时间
+      tbody#task-table-body
+
+  #task-log-modal.task-log-modal
+    .task-log-modal__panel
+      .task-log-modal__head
+        h3(style="margin:0") 采集任务日志
+        button.btn(type="button" onclick="closeTaskDetail()" style="background:#f5f5f5;color:#333") 关闭
+      .task-log-modal__body
+        .task-log-modal__meta#task-log-meta 正在加载...
+        pre.task-log-modal__content#task-log-content 暂无日志
+
+  script.
+    const initialTasks = !{JSON.stringify(tasks || [])};
+    const taskStaleMs = #{10 * 60 * 1000};
+    const rangeLabelMap = {
+      today: '今天',
+      '1day': '1天内',
+      '2day': '2天内',
+      week: '本周',
+      month: '本月',
+      '3month': '最近3月',
+      all: '全量'
+    };
+    const statusLabelMap = {
+      pending: '等待中',
+      running: '执行中',
+      success: '已完成',
+      failed: '失败'
+    };
+
+    function escapeHtml(value) {
+      return String(value || '').replace(/[&<>"']/g, function (char) {
+        return {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;'
+        }[char];
+      });
+    }
+
+    function formatDate(value) {
+      if (!value) return '-';
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return '-';
+      return date.toLocaleString();
+    }
+
+    function formatTaskLogs(logs) {
+      if (!Array.isArray(logs) || logs.length === 0) return '-';
+      return logs.slice(-3).map(function (log) {
+        var time = formatDate(log && log.at);
+        var text = log && log.text ? String(log.text) : '';
+        return (time !== '-' ? '[' + time + '] ' : '') + text;
+      }).join('\n');
+    }
+
+    function isTaskStale(task) {
+      if (!task || task.status !== 'running') return false;
+      const heartbeat = task.heartbeatAt || task.startedAt || task.createdAt;
+      if (!heartbeat) return false;
+      const time = new Date(heartbeat).getTime();
+      if (Number.isNaN(time)) return false;
+      return Date.now() - time >= taskStaleMs;
+    }
+
+    function buildStatusLabel(task) {
+      const base = statusLabelMap[task.status] || task.status || '-';
+      if (isTaskStale(task)) {
+        return base + '（疑似卡住）';
+      }
+      return base;
+    }
+
+    function buildStatusClass(task) {
+      return isTaskStale(task) ? 'task-status--stale' : '';
+    }
+
+    function renderTaskRows(taskList) {
+      const rows = (taskList || []).map(function (task) {
+        const progressText = [
+          task.message || '',
+          task.currentName ? '当前：' + task.currentName : ''
+        ].filter(Boolean).join(' ');
+        const queueText = task.status === 'pending'
+          ? ('第 ' + (task.queuePosition || 0) + ' 位')
+          : (task.status === 'running' ? '执行中' : '-');
+        const resultText = [
+          '处理 ' + (task.processed || 0),
+          '新增 ' + (task.created || 0),
+          '更新 ' + (task.updated || 0),
+          '跳过 ' + (task.skipped || 0),
+          '页数 ' + (task.pages || 0)
+        ].join(' / ');
+
+        return '<tr>'
+          + '<td>' + escapeHtml(task.sourceName || '-') + '</td>'
+          + '<td>' + escapeHtml(rangeLabelMap[task.range] || task.range || '-') + '</td>'
+          + '<td>' + escapeHtml(task.trigger === 'scheduler' ? '定时任务' : '手动') + '</td>'
+          + '<td class="' + escapeHtml(buildStatusClass(task)) + '">' + escapeHtml(buildStatusLabel(task)) + '</td>'
+          + '<td>' + escapeHtml(queueText) + '</td>'
+          + '<td>' + escapeHtml(progressText || '-') + '</td>'
+          + '<td>' + escapeHtml(resultText) + '</td>'
+          + '<td><div class="task-log-preview"><div class="task-log-preview__text">' + escapeHtml(formatTaskLogs(task.logs)) + '</div><button class="btn btn-primary" type="button" onclick="showTaskDetail(\'' + escapeHtml(task._id || '') + '\')">查看日志</button></div></td>'
+          + '<td>' + escapeHtml(formatDate(task.createdAt)) + '</td>'
+          + '<td>' + escapeHtml(formatDate(task.heartbeatAt)) + '</td>'
+          + '<td>' + escapeHtml(formatDate(task.finishedAt)) + '</td>'
+          + '</tr>';
+      }).join('');
+
+      document.getElementById('task-table-body').innerHTML = rows || '<tr><td colspan="11" style="text-align:center;color:#999">暂无采集任务</td></tr>';
+    }
+
+    async function testCollect(id) {
+      const response = await fetch('/admin/collect/' + id + '/test', { method: 'POST' });
+      const data = await response.json();
+      alert(data.msg);
+    }
+
+    async function runCollect(id, range) {
+      if (!confirm('确定开始 ' + (rangeLabelMap[range] || range) + ' 采集吗？')) return;
+      const response = await fetch('/admin/collect/' + id + '/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ range: range })
+      });
+      const data = await response.json();
+      alert(data.msg);
+      if (data.code === 1) {
+        await loadTasks();
+      }
+    }
+
+    async function delCollect(id) {
+      if (!confirm('确定删除该采集源吗？')) return;
+      const response = await fetch('/admin/collect/' + id, { method: 'DELETE' });
+      const data = await response.json();
+      if (data.code === 1) {
+        location.reload();
+        return;
+      }
+      alert(data.msg || '删除失败');
+    }
+
+    async function loadTasks() {
+      try {
+        const response = await fetch('/admin/collect/tasks');
+        const data = await response.json();
+        if (data.code === 1) {
+          renderTaskRows(data.data || []);
+        }
+      } catch (error) {
+        console.error('Load collect tasks failed:', error);
+      }
+    }
+
+    async function showTaskDetail(taskId) {
+      if (!taskId) return;
+      const modal = document.getElementById('task-log-modal');
+      const meta = document.getElementById('task-log-meta');
+      const content = document.getElementById('task-log-content');
+      meta.textContent = '正在加载...';
+      content.textContent = '正在加载日志...';
+      modal.classList.add('is-open');
+
+      try {
+        const response = await fetch('/admin/collect/tasks/' + taskId);
+        const data = await response.json();
+        if (data.code !== 1 || !data.data) {
+          meta.textContent = '任务详情加载失败';
+          content.textContent = data.msg || '任务不存在';
+          return;
+        }
+
+        const task = data.data;
+        meta.textContent = [
+          '采集源：' + (task.sourceName || '-'),
+          '范围：' + (rangeLabelMap[task.range] || task.range || '-'),
+          '状态：' + buildStatusLabel(task),
+          '当前进度：' + ((task.message || '-') + (task.currentName ? ' 当前：' + task.currentName : '')),
+          '结果：处理 ' + (task.processed || 0) + ' / 新增 ' + (task.created || 0) + ' / 更新 ' + (task.updated || 0) + ' / 跳过 ' + (task.skipped || 0) + ' / 页数 ' + (task.pages || 0),
+          '创建时间：' + formatDate(task.createdAt),
+          '心跳时间：' + formatDate(task.heartbeatAt),
+          '完成时间：' + formatDate(task.finishedAt)
+        ].join('\n');
+        content.textContent = Array.isArray(task.logs) && task.logs.length > 0
+          ? task.logs.map(function (log) {
+            return '[' + formatDate(log.at) + '] ' + (log.text || '');
+          }).join('\n')
+          : '暂无日志';
+      } catch (error) {
+        meta.textContent = '任务详情加载失败';
+        content.textContent = error && error.message ? error.message : '未知错误';
+      }
+    }
+
+    function closeTaskDetail() {
+      document.getElementById('task-log-modal').classList.remove('is-open');
+    }
+
+    renderTaskRows(initialTasks);
+    loadTasks();
+    setInterval(loadTasks, 5000);

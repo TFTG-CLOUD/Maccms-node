@@ -1,0 +1,16 @@
+//- Source: like.html
+//- ⚠ Manual work: 1 item(s)
+//-
+//-   MANUAL: {maccms:vod num="12" type="current" order="desc" by="time"} needs controller pre-query
+
+div.stui-pannel.stui-pannel-bg.clearfix
+  div.stui-pannel-box
+    div.stui-pannel_hd
+      div.stui-pannel__head.clearfix
+        h3.title
+          img(src="#{maccms.pathTpl}statics/icon/icon_6.png")
+          | 猜你喜欢
+    div.stui-pannel_bd
+      ul.stui-vodlist__bd.clearfix
+        //- MANUAL: maccms block (needs controller pre-query)hidden-md{{INLINE_ENDIF}}">
+        include ../block/vod_box

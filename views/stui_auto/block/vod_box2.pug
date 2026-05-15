@@ -1,0 +1,12 @@
+//- Source: vod_box2.html
+//- ⚠ Manual work: 1 item(s)
+//-
+//-   MANUAL: 1 inline conditionals embedded in text — needs structural Pug refactor
+
+div.stui-vodlist__box.stui-vodlist__bg
+  a.stui-vodlist__thumb.lazyload(href="`/vod/detail/id/${item._id}.html`", title="#{item.name}", data-original="#{item.pic}")
+    span.play.hidden-xs
+    span.pic-text.text-right  // MANUAL: Inline conditional - needs structural Pug conversion
+  div.stui-vodlist__detail.active
+    h4.title.text-overflow a(href="`/vod/detail/id/${item._id}.html`", title="#{item.name}") #{item.name}
+    p.text.text-overflow.text-muted.hidden-xs #{item.actor || '内详'}

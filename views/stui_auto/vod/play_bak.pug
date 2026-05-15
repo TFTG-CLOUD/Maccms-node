@@ -1,0 +1,71 @@
+//- Source: play_bak.html
+//- ⚠ Manual work: 3 item(s)
+//-
+//-   MANUAL: |mac_url_create='class' filter — needs /vod/search/class/ URL helper
+//-   MANUAL: |mac_url_create='area' filter — needs /vod/search/area/ URL helper
+//-   MANUAL: |mac_url_create='year' filter — needs /vod/search/year/ URL helper
+
+html
+  head
+    include ../seo/vod_play
+    include ../block/include
+    script(type="text/javascript", src="#{maccms.pathTpl}statics/js/history.js")
+    script(type="text/javascript")
+      | var vod_name = '#{vod.name.substring(0, 10)}', vod_url = window.location.href, vod_part='{$obj['vod_play_list'][$param['sid']]['urls'][$param['nid']]['name']}';
+  body
+    include ../block/head
+    div.container
+      div.row
+
+        // 播放器
+        div.stui-pannel.stui-pannel-bg.clearfix
+          div.stui-pannel-box
+            div.stui-pannel-bd
+              div.stui-player.col-pd
+                div.stui-player__video.clearfix
+                  | !{playerData}!{playerJs}
+                div.stui-player__detail.detail
+                  ul.more-btn
+                    if maccms.userStatus === 1
+                      li
+                        a.mac_ulog.btn.btn-default(href="javascript:void(0);", data-type="2", data-mid="#{maccms.mid}", data-id="#{vod._id}") 收藏  i.icon.iconfont.icon-favorite.hidden-xs
+                      li
+                        a.btn.btn-default(href="javascript:;", onclick="MAC.Gbook.Report('编号【#{vod._id}】名称【#{vod.name}】不能观看请检查修复，页面地址' + location.href)") 报错  i.icon.iconfont.icon-close.hidden-xs
+                    else
+                      li
+                        a.btn.btn-default(href="javascript:;", onclick="window.location.reload()") 刷新  i.icon.iconfont.icon-refresh.hidden-xs
+                    li
+                      a.btn.btn-default.copylink(href="javascript:;") 分享  i.icon.iconfont.icon-share.hidden-xs
+                    li a.btn.btn-default(href="{$obj.player_info.link_pre}") i.icon.iconfont.icon-back.hidden-xs  上一集
+                    li a.btn.btn-default(href="{$obj.player_info.link_next}") 下一集  i.icon.iconfont.icon-more.hidden-xs
+                  h1.title a(href="`/vod/detail/id/${vod._id}.html`") #{vod.name}
+                  p.data.margin-0
+                    span.text-muted 类型： #{vod.class}
+                    span.split-line
+                    span.text-muted 地区： #{vod.area}
+                    span.split-line
+                    span.text-muted 年份： #{vod.year}
+        // end 播放器
+
+        include ../vod/playlist
+        include ../vod/desc
+        include ../vod/like
+    script(type="text/javascript")
+      | if(playerhigh==1){
+      | $(".MacPlayer").addClass("embed-responsive embed-responsive-16by9").css({"padding-bottom":"56.25%","z-index":"99"});
+      | $("#playleft,.dplayer-video-wrap").css({"position":"inherit","overflow":"initial"});
+      | }
+      | var PlayerHeight = $(".MacPlayer").outerHeight();
+      | $(".stui-player__video").css("height",PlayerHeight);
+      | var playli = $(".stui-content__playlist:first li").length;
+      | if(playcolumn>1){
+      | if(playli>5){
+      | $(".stui-content__playlist").addClass("column"+playcolumn);
+      | }
+      | }
+      | if(playli>30){
+      | $(".stui-content__playlist").css({"max-height":" 300px","overflow-y":"scroll"});
+      | }
+    span.mac_hits.hits.hide(data-mid="#{maccms.mid}", data-id="#{vod._id}#{vod._id}#{vod._id}", data-type="hits")
+    span.mac_ulog_set.hide(data-type="4", data-mid="#{maccms.mid}", data-id="#{vod._id}", data-sid="#{param.sid}", data-nid="#{param.nid}")
+    include ../block/foot

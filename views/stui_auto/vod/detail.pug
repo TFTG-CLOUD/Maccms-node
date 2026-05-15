@@ -1,0 +1,88 @@
+//- Source: detail.html
+//- ⚠ Manual work: 3 item(s)
+//-
+//-   MANUAL: |mac_url_create='actor' filter — needs /vod/search/actor/ URL helper
+//-   MANUAL: |mac_url_create='director' filter — needs /vod/search/director/ URL helper
+//-   MANUAL: 1 inline conditionals embedded in text — needs structural Pug refactor
+
+html
+  head
+    include ../seo/vod_detail
+    include ../block/include
+  body
+    include ../block/head
+    div.container
+      div.row
+
+        // 详情
+        div.stui-pannel.stui-pannel-bg.clearfix
+          div.stui-pannel-box.clearfix
+            div.stui-pannel_bd.clearfix
+              div.col-md-wide-75.col-xs-1
+                div.stui-content.clearfix
+                  div.stui-content__thumb
+                    a.stui-vodlist__thumb.picture.v-thumb(href="`/vod/play/id/${vod._id}/sid/1/nid/1.html`", title="#{vod.name}")
+                      img.lazyload(src="#{maccms.pathTpl}statics/img/load.gif", data-original="#{vod.pic}")
+                      span.play.active.hidden-xs
+                      span.pic-text.text-right  // MANUAL: Inline conditional - needs structural Pug conversion
+                  div.stui-content__detail
+                    h1.title #{vod.name}
+                    p.data span.text-muted 主演： #{vod.actor.substring(0, 60)}
+                    p.data span.text-muted 导演： #{vod.director}
+                    p.data
+                      span.text-muted 类型： #{vod.class}
+                      span.split-line
+                      span.text-muted.hidden-xs 地区： #{vod.area}
+                      span.split-line
+                      span.text-muted.hidden-xs 年份： #{vod.year}
+                    p.desc.detail.hidden-xs
+                      span.left.text-muted 简介：
+                      span.detail-sketch #{stripHtml(vod.content).substring(0, 100)}
+                      span.detail-content(style="display: none;") #{stripHtml(vod.content)}
+                      a.detail-more(href="javascript:;") 详情  i.icon.iconfont.icon-moreunfold
+                    div.play-btn.clearfix
+                      div.share.bdsharebuttonbox.hidden-sm.hidden-xs.pull-right
+                      a.btn.btn-primary(href="`/vod/play/id/${vod._id}/sid/1/nid/1.html`") 立即播放
+                      if maccms.userStatus === 1
+                        a.mac_ulog.btn.btn-default(href="javascript:void(0);", data-type="2", data-mid="#{maccms.mid}", data-id="#{vod._id}") 收藏
+                      // <span class="bdsharebuttonbox hidden-xs"><a href="javascript:;" class="btn btn-default bds_btn" data-cmd="more">分享</a></span>
+              div.col-md-wide-25.hidden-md.hidden-sm.hidden-xs
+                div.text-center(style="padding: 45px;")
+                  p#qrcode2(style="padding-left: 20px;")
+                  p.font-12 扫码用手机观看
+        // end 详情
+        include ../vod/playlist
+        include ../vod/like
+
+        if comment.status === 1
+          div.stui-pannel.stui-pannel-bg.clearfix
+            div.stui-pannel-box.clearfix
+              div.stui-pannel_bd.clearfix
+                div.stui-pannel_hd
+                  div.stui-pannel__head.clearfix
+                    h3.title
+                      img(src="#{maccms.pathTpl}statics/icon/icon_30.png")
+                      | 影片评论
+                div.stui-pannel_bd
+                  div.mac_comment(data-id="#{vod._id}", data-mid="#{maccms.mid}")
+                  script
+                    | $(function(){
+                    | MAC.Comment.Login = #{comment.login};
+                    | MAC.Comment.Verify = #{comment.verify};
+                    | MAC.Comment.Init();
+                    | MAC.Comment.Show(1);
+                    | });
+
+    script(type="text/javascript")
+      | var playli = $(".stui-content__playlist:first li").length;
+      | if(playcolumn>1){
+      | if(playli>5){
+      | $(".stui-content__playlist").addClass("column"+playcolumn);
+      | }
+      | }
+      | if(playli>30){
+      | $(".stui-content__playlist").css({"max-height":" 300px","overflow-y":"scroll"});
+      | }
+    span.mac_hits.hits.hide(data-mid="#{maccms.mid}", data-id="#{vod._id}#{vod._id}#{vod._id}", data-type="hits")
+    span.mac_ulog_set.hide(data-type="1", data-mid="#{maccms.mid}", data-id="#{vod._id}", data-sid="#{param.sid}", data-nid="#{param.nid}")
+    include ../block/foot

@@ -1,0 +1,51 @@
+//- Source: index.html
+//- ⚠ Manual work: 3 item(s)
+//-
+//-   MANUAL: {maccms:for start="1" end="16"} needs controller pre-query
+//-   MANUAL: {maccms:comment num="10" paging="yes" order="desc" by="id"} needs controller pre-query
+//-   MANUAL: {maccms:foreach name="__LIST__" id="vo"} needs controller pre-query
+
+html(lang="en")
+  head
+    meta(charset="utf-8")
+    meta(name="viewport", content="width = device-width ,initial-scale = 1,minimum-scale = 1,maximum-scale = 1,user-scalable =no,")
+    title 全部评论 - #{maccms.siteName}
+    include ../block/include
+    style(type="text/css")
+      | .stui-comment__form{position:relative;margin-bottom:20px}.stui-comment__form .comment_content{margin-bottom:20px}.stui-comment__form .submit-box{float:right}.stui-comment__item{position:relative;padding:15px 0 15px 60px}.stui-comment__item.active{margin-top:10px;padding:15px 0 0 60px}.stui-comment__item .avatar{position:absolute;top:15px;left:0}.stui-comment__item .avatar img{width:50px;height:50px;border-radius:50%}.stui-comment__item .comment-head .title{margin:0}.stui-comment__item .comment-cont{margin-bottom:10px;line-height:25px}.stui-comment__item .comment-foot a{display:inline-block;font-size:12px}.stui-comment__item .stui-comment__form{margin-top:10px;margin-bottom:0}@media (max-width:767px){.stui-comment__form .submit-box{float:none}.stui-comment__item{position:relative;padding:10px 0 10px 40px}.stui-comment__item.active{margin-top:5px;padding:15px 0 0 40px}.stui-comment__item .avatar{top:10px}.stui-comment__item .avatar img{width:30px;height:30px}}
+  body
+    include ../block/head
+    div.container
+      div.row
+        div.stui-pannel.stui-pannel-bg.clearfix
+          div.stui-pannel-box.clearfix
+            div.stui-pannel_hd
+              div.stui-pannel__head.clearfix
+                h3.title
+                  img(src="#{maccms.path}statics/icon/icon_30.png")
+                  | 全部评论
+            // 评论开始
+            div.col-pd
+              form.comment_form.clearfix
+                input(type="hidden", name="comment_pid", value="0", hidden)
+                // 评论框
+                div.stui-comment__form.clearfix
+                  textarea.comment_content.form-control(name="comment_content", rows="3", placeholder="请输入评论内容...")
+                  div.submit-box
+                    if comment.verify === 1
+                      img#verify_img(src="{:url('verify/index')}", onClick="this.src=this.src+'?'", alt="单击刷新", height="30")
+                      | &nbsp;&nbsp; input.form-control#verify(type="text", name="verify", placeholder="验证码", style="display: inline-block; width: 80px;")
+                    | &nbsp;&nbsp; input.comment_submit.btn.btn-primary.pull-right(type="button", value="发布")
+                  div.comment_face_box.hidden-xs
+                    //- MANUAL: maccms block (needs controller pre-query)
+              //- MANUAL: maccms block (needs controller pre-query)
+              div.stui-pannel__head.active.clearfix
+                span.more.pull-right 共“ span.text-red#item_count #{__PAGING__.record_total} ”条评论
+                h3.title
+                  | 用户评论
+              //- MANUAL: maccms block (needs controller pre-query)
+            | {/maccms:foreach}
+          // 评论结束
+          include ../block/page
+  script
+    | MAC.Comment.Init();

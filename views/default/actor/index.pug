@@ -1,0 +1,10 @@
+extends ../layout
+block content
+  h2 演员列表
+  .vod-list
+    each item in list
+      .vod-item
+        a(href=macUrl("/actor/detail/id/" + item._id + ".html"))
+          img(src=item.pic || '/images/nopic.png' alt=item.name)
+        .vod-info
+          a.title(href=macUrl("/actor/detail/id/" + item._id + ".html"))= item.name

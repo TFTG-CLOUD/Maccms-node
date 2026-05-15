@@ -1,0 +1,7 @@
+extends ../layout
+block content
+  h2= type ? type.name : '文章列表'
+  ul
+    each item in list
+      li
+        a(href=macUrl("/art/detail/id/" + item._id + ".html"))= item.name

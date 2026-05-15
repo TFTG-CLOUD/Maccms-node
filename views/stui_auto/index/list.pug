@@ -1,0 +1,25 @@
+//- Source: list.html
+//- ⚠ Manual work: 6 item(s)
+//-
+//-   MANUAL: {maccms:type ids="parent" order="asc" by="sort" id="vo1" key="key1" flag="vod"} needs controller pre-query
+//-   MANUAL: {maccms:vod num="12" type="'.$vo1['type_id'].'" order="desc" by="hits_week"} needs controller pre-query
+//-   MANUAL: {maccms:vod num="15" type="'.$vo1['type_id'].'" order="desc" by="time"} needs controller pre-query
+//-   MANUAL: Complex URL helper: {:mac_url_type($vo1,['by'=>hits],'show')}
+//-   MANUAL: Complex URL helper: {:mac_url_type($vo1,[],'show')}
+//-   MANUAL: Complex URL helper: {:mac_url_type($vo2,[],'show')}
+
+//- MANUAL: maccms block (needs controller pre-query)
+div.stui-pannel_bd.clearfix
+  ul.stui-vodlist.clearfix
+    //- MANUAL: maccms block (needs controller pre-query)hidden-lg hidden-md{{INLINE_ENDIF}}">
+    include ../block/vod_box
+div.col-lg-wide-25.hidden-md.hidden-sm.hidden-xs
+  div.stui-pannel_hd
+    div.stui-pannel__head.active.bottom-line.clearfix
+      h3.title
+        img(src="#{maccms.pathTpl}statics/icon/icon_12.png")
+        a(href="(TODO: mac_url complex call)") 最新入库#{section.name}
+
+  ul.stui-vodlist__text.active.col-pd.clearfix
+    //- MANUAL: maccms block (needs controller pre-query)
+| {/maccms:type}

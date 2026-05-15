@@ -1,0 +1,27 @@
+mixin vodBox(vod)
+  .stui-vodlist__box
+    a.stui-vodlist__thumb.lazyload(href=macUrl("/vod/detail/id/" + vod._id + ".html") title=vod.name data-original=vod.pic)
+      span.play.hidden-xs
+      span.pic-text.text-right= vod.remarks || (vod.serial && vod.serial > 0 ? '第' + vod.serial + '集' : (vod.isEnd ? '已完结' : vod.serial || ''))
+    .stui-vodlist__detail
+      h4.title.text-overflow: a(href=macUrl("/vod/detail/id/" + vod._id + ".html") title=vod.name)= vod.name
+      p.text.text-overflow.text-muted.hidden-xs= vod.actor || '未知'
+
+mixin vodBoxRank(vod, index)
+  li(class=(index > 1 && index < 5 ? 'top-line-dot' : ''))
+    a.text-overflow(href=macUrl("/vod/detail/id/" + vod._id + ".html") title=vod.name)
+      span.text-muted.pull-right= vod.remarks || ''
+      span.badge(class=(index == 1 ? 'badge-first' : index == 2 ? 'badge-second' : ''))= index
+      | #{vod.name}
+
+mixin page(paging)
+  if paging && paging.totalPages > 1
+    ul.stui-page.text-center.clearfix
+      li: a(href=paging.baseUrl + "page/1.html") 首页
+      li: a(href=paging.baseUrl + "page/" + paging.prev + ".html") 上一页
+      each num in paging.nums
+        li.hidden-xs(class=(paging.current == num ? 'active' : '')): a(href=paging.baseUrl + "page/" + num + ".html")= num
+      li.hidden-xs.page-item: span.num #{paging.current}/#{paging.totalPages}
+      li.active.visible-xs: span.num #{paging.current}/#{paging.totalPages}
+      li: a(href=paging.baseUrl + "page/" + paging.next + ".html") 下一页
+      li: a(href=paging.baseUrl + "page/" + paging.totalPages + ".html") 尾页

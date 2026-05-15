@@ -1,0 +1,258 @@
+extends ../layout
+include ../mixins
+
+block extraHead
+  style.
+    .playlist-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .playlist-accordion {
+      border: 1px solid var(--tg-soft-border);
+      border-radius: 18px;
+      background: linear-gradient(180deg, #fffdfa 0%, #ffffff 100%);
+      box-shadow: var(--tg-soft-shadow);
+      overflow: hidden;
+    }
+    .playlist-accordion summary {
+      list-style: none;
+      cursor: pointer;
+    }
+    .playlist-accordion summary::-webkit-details-marker {
+      display: none;
+    }
+    .playlist-source__head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 18px 22px;
+    }
+    .playlist-source__meta {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      min-width: 0;
+    }
+    .playlist-source__title {
+      display: block;
+      font-size: 16px;
+      font-weight: 600;
+      color: #2c2c2c;
+    }
+    .playlist-source__arrow {
+      width: 16px;
+      height: 16px;
+      border-right: 2px solid #555;
+      border-bottom: 2px solid #555;
+      transform: rotate(45deg);
+      transition: transform 0.2s ease;
+    }
+    .playlist-accordion[open] .playlist-source__arrow {
+      transform: rotate(225deg);
+    }
+    .playlist-source__count {
+      font-size: 12px;
+      color: #888;
+      white-space: nowrap;
+    }
+    .playlist-source__raw {
+      display: inline-flex;
+      align-items: center;
+      max-width: 100%;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(255, 153, 0, 0.1);
+      color: #c96c00;
+      font-size: 11px;
+      line-height: 1.2;
+    }
+    .playlist-body {
+      padding: 0 18px 18px;
+      border-top: 1px solid rgba(255, 153, 0, 0.12);
+    }
+    .playlist-items {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+      max-height: 248px;
+      overflow: auto;
+      padding-right: 4px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 153, 0, 0.48) rgba(255, 153, 0, 0.1);
+    }
+    .playlist-items::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    .playlist-items::-webkit-scrollbar-track {
+      background: rgba(255, 153, 0, 0.08);
+      border-radius: 999px;
+    }
+    .playlist-items::-webkit-scrollbar-thumb {
+      background: rgba(255, 153, 0, 0.42);
+      border-radius: 999px;
+    }
+    .playlist-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      min-width: 0;
+      min-height: 42px;
+      padding: 10px 12px;
+      border: 1px solid #ebe6db;
+      border-radius: 12px;
+      background: #fff;
+      color: #3d3d3d;
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.35;
+      transition: all 0.18s ease;
+    }
+    .playlist-chip:hover,
+    .playlist-chip:focus {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 24px rgba(255, 153, 0, 0.12);
+      border-color: #ffb25c;
+      color: #ff9900;
+    }
+    .playlist-chip--active {
+      border-color: #ff9900;
+      color: #ff9900;
+      box-shadow: inset 0 0 0 1px rgba(255, 153, 0, 0.12);
+    }
+    @media (max-width: 767px) {
+      .playlist-stack {
+        gap: 12px;
+      }
+      .playlist-accordion {
+        border-radius: 16px;
+      }
+      .playlist-source__head {
+        padding: 14px 14px 12px;
+      }
+      .playlist-body {
+        padding: 0 14px 14px;
+      }
+      .playlist-items {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        max-height: 216px;
+        padding-right: 2px;
+        padding-bottom: 2px;
+        -webkit-overflow-scrolling: touch;
+      }
+      .playlist-chip {
+        min-height: 38px;
+        padding: 9px 8px;
+        font-size: 13px;
+      }
+      .playlist-source__title {
+        font-size: 15px;
+      }
+      .playlist-source__count,
+      .playlist-source__raw {
+        font-size: 11px;
+      }
+    }
+block content
+  .stui-pannel.stui-pannel-bg.clearfix
+    .stui-pannel-box.clearfix
+      .stui-pannel_bd.clearfix
+        .col-md-1.col-xs-1
+          .stui-content.clearfix
+            .stui-content__thumb
+              a.stui-vodlist__thumb.picture.v-thumb(href=macUrl("/vod/play/id/" + vod._id + "/sid/1/nid/1.html") title=vod.name)
+                img.lazyload(src="/static/img/tanggui-qrcode.png" data-original=vod.pic)
+                span.play.active.hidden-xs
+                span.pic-text.text-right= vod.remarks || (vod.serial && vod.serial > 0 ? '第' + vod.serial + '集' : (vod.isEnd ? '已完结' : ''))
+            .stui-content__detail
+              h1.title= vod.name
+              p.data
+                span.text-muted 主演：
+                = (vod.actor || '未知').substring(0, 60)
+              p.data
+                span.text-muted 导演：
+                = vod.director || '未知'
+              p.data
+                span.text-muted 类型：
+                = vod.class || ''
+                span.split-line
+                span.text-muted.hidden-xs 地区：
+                = vod.area || ''
+                span.split-line
+                span.text-muted.hidden-xs 年份：
+                = vod.year || ''
+              if ratingMeta && (ratingMeta.doubanScore || ratingMeta.siteScore)
+                p.data
+                  if ratingMeta.doubanScore
+                    span.text-muted 豆瓣评分：
+                    if ratingMeta.doubanUrl
+                      a(href=ratingMeta.doubanUrl target="_blank" rel="noopener noreferrer")= ratingMeta.doubanScore
+                    else
+                      span= ratingMeta.doubanScore
+                  if ratingMeta.doubanScore && ratingMeta.siteScore
+                    span.split-line
+                  if ratingMeta.siteScore
+                    span.text-muted 站内评分：
+                    span= ratingMeta.siteScore
+              p.desc.detail.hidden-xs
+                span.left.text-muted 简介：
+                span.detail-sketch #{vod.contentSummary || ''}
+                span.detail-content(style="display:none") #{vod.contentText || ''}
+                if vod.contentText && vod.contentText !== '暂无简介'
+                  a.detail-more(href="javascript:;") 详情
+                    i.icon.iconfont.icon-moreunfold
+              .play-btn.clearfix
+                a.btn.btn-primary(href=macUrl("/vod/play/id/" + vod._id + "/sid/1/nid/1.html")) 立即播放
+
+  if vod.playUrls && vod.playUrls.length
+    .stui-pannel.stui-pannel-bg.clearfix
+      .stui-pannel-box
+        .stui-pannel_hd
+          .stui-pannel__head.active.bottom-line.clearfix
+            h3.title
+              img(src="/static/icon/icon_7.png")
+              | 播放地址
+        .stui-pannel_bd
+          .playlist-stack
+            each server, sIdx in vod.playUrls
+              details.playlist-accordion(open=sIdx === 0 id="playlist_" + (sIdx + 1))
+                summary.playlist-source__head
+                  .playlist-source__meta
+                    span.playlist-source__arrow
+                    span.playlist-source__title= '播放线路 ' + (sIdx + 1)
+                    if server.server
+                      span.playlist-source__raw= server.server
+                  span.playlist-source__count= server.episodes.length + ' 个地址'
+                .playlist-body
+                  .playlist-items
+                    each ep, epIdx in server.episodes
+                      a.playlist-chip(class=(param.nid == ep.nid ? 'playlist-chip--active' : '') href=macUrl("/vod/play/id/" + vod._id + "/sid/" + (sIdx + 1) + "/nid/" + (ep.nid || (epIdx + 1)) + ".html"))= ep.name || ('第' + (epIdx + 1) + '集')
+
+  .stui-pannel.stui-pannel-bg.clearfix
+    .stui-pannel-box
+      .stui-pannel_hd
+        .stui-pannel__head.active.bottom-line.clearfix
+          h3.title 剧情简介
+      .stui-pannel_bd
+        .detail
+          .detail-content #{vod.contentText || '暂无简介'}
+
+  if relatedVods && relatedVods.length
+    .stui-pannel.stui-pannel-bg.clearfix
+      .stui-pannel-box
+        .stui-pannel_hd
+          .stui-pannel__head.active.bottom-line.clearfix
+            h3.title
+              img(src="/static/icon/icon_6.png")
+              | 猜你喜欢
+        .stui-pannel_bd
+          ul.stui-vodlist.clearfix
+            each vod in relatedVods
+              li.col-md-6.col-sm-4.col-xs-3
+                +vodBox(vod)

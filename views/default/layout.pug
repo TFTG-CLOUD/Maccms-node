@@ -1,0 +1,24 @@
+doctype html
+html(lang="zh-CN")
+  head
+    include public/head
+  body
+    .header
+      .container
+        a.logo(href=macUrl("/")) #{maccms.siteName}
+        .nav
+          a(href=macUrl("/")) 首页
+          a(href=macUrl("/vod/type/id/1.html")) 电影
+          a(href=macUrl("/vod/type/id/2.html")) 电视剧
+          a(href=macUrl("/vod/type/id/3.html")) 综艺
+          a(href=macUrl("/vod/type/id/4.html")) 动漫
+        .search-box
+          form(action=macUrl("/vod/search.html") method="get")
+            input(type="text" name="wd" placeholder="搜索影片...")
+            button(type="submit") 搜索
+    .main
+      .container
+        block content
+    .footer
+      .container
+        include public/foot

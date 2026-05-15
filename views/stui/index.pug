@@ -1,0 +1,48 @@
+extends layout
+include mixins
+
+block content
+  each section in categorySections
+    .stui-pannel.stui-pannel-bg.clearfix
+      .stui-pannel-box.clearfix
+        .col-lg-wide-75.col-xs-1.padding-0
+          .stui-pannel_hd
+            .stui-pannel__head.clearfix
+              a.more.text-muted.pull-right(href=macUrl("/vod/show/id/" + section.type._id + "/by/hits.html")) 更多
+                i.icon.iconfont.icon-more
+              h3.title
+                img(src="/static/icon/icon_" + section.type._id + ".png" onerror="this.style.display='none'")
+                a(href=macUrl("/vod/show/id/" + section.type._id + ".html")) 热门#{section.displayName || section.type.name}
+              ul.nav.nav-text.pull-right.hidden-sm.hidden-xs
+                each child in section.children
+                  li
+                    a.text-muted(href=macUrl("/vod/show/id/" + child._id + ".html"))= child.name
+                    span.split-line
+          .stui-pannel_bd.clearfix
+            ul.stui-vodlist.clearfix
+              each vod, idx in section.vods
+                li.col-md-5.col-sm-4.col-xs-3(class=(idx >= 10 ? 'hidden-lg hidden-md' : ''))
+                  +vodBox(vod)
+        .col-lg-wide-25.hidden-md.hidden-sm.hidden-xs
+          .stui-pannel_hd
+            .stui-pannel__head.active.bottom-line.clearfix
+              h3.title
+                img(src="/static/icon/icon_12.png")
+                a(href=macUrl("/vod/show/id/" + section.type._id + ".html")) 最新入库#{section.displayName || section.type.name}
+          ul.stui-vodlist__text.active.col-pd.clearfix
+            each vod, idx in (section.sideVods || [])
+              +vodBoxRank(vod, idx + 1)
+
+  if links && links.length
+    .stui-pannel.stui-pannel-bg.hidden-sm.hidden-xs.clearfix
+      .stui-pannel-box
+        .stui-pannel_hd
+          .stui-pannel__head.clearfix
+            h3.title
+              img(src="/static/icon/icon_26.png")
+              | 友情链接
+        .stui-pannel_bd.clearfix
+          .col-xs-1
+            ul.stui-link__text.clearfix
+              each link in links
+                li: a.text-muted(href=link.url title=link.name target="_blank")= link.name

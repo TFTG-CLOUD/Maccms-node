@@ -1,0 +1,20 @@
+extends ../layout
+include ../public/paging
+
+block content
+  .home-content
+    h2 最新更新
+    .vod-list
+      each item in list
+        .vod-item
+          a(href=macUrl("/vod/detail/id/" + item._id + ".html"))
+            img(src=item.pic || '/images/nopic.png' alt=item.name)
+          .vod-info
+            a.title(href=macUrl("/vod/detail/id/" + item._id + ".html"))= item.name
+            .meta
+              if item.type
+                a(href=macUrl("/vod/type/id/" + item.type._id + ".html"))= item.type.name
+              span= item.area || ''
+              span= item.year || ''
+              span= (item.isEnd ? '完结' : (item.serial || '连载中'))
+    +paging(__PAGING__)

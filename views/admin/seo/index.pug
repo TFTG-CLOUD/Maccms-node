@@ -1,0 +1,28 @@
+extends ../layout
+block content
+  h2 SEO配置
+  p(style="margin:10px 0 18px;color:#666;line-height:1.7")
+    | 按页面类型配置全站 SEO 模板，支持类似 MacCMS 的占位符。
+    br
+    | 常用占位符：{siteTitle} {siteName} {siteKeywords} {siteDescription} {vod_name} {vod_actor} {vod_director} {vod_content} {player_name} {episode_name} {type_name} {search_word} {art_name}
+
+  - const labels = { index: '首页', vod: '详情页', play: '播放页', show: '筛选页', type: '分类页', search: '搜索页', art: '文章详情页', actor: '演员页', role: '角色页', plot: '剧情页', website: '网址页' }
+  - const descriptions = { index: '适用于首页。', vod: '适用于影片详情页。', play: '适用于播放页，可组合影片名、播放源名和集数名。', show: '适用于筛选页。', type: '适用于分类列表页。', search: '适用于搜索结果页。', art: '适用于文章详情页。', actor: '适用于演员列表页。', role: '适用于角色列表页。', plot: '适用于剧情列表页。', website: '适用于网址列表页。' }
+  form(method="POST" action="/admin/seo" style="display:flex;flex-direction:column;gap:18px")
+    each pageKey in Object.keys(defaults)
+      - const current = setting?.pages?.[pageKey] || {}
+      - const fallback = defaults[pageKey]
+      .seo-card(style="background:#fff;padding:20px;border-radius:6px")
+        h3(style="margin-bottom:8px")= labels[pageKey] || pageKey
+        p(style="margin-bottom:16px;color:#666")= descriptions[pageKey] || ''
+        .form-group
+          label Title 模板
+          textarea(name=pageKey + '_title' placeholder=fallback.title)= current.title || fallback.title
+        .form-group
+          label Keywords 模板
+          textarea(name=pageKey + '_keywords' placeholder=fallback.keywords)= current.keywords || fallback.keywords
+        .form-group
+          label Description 模板
+          textarea(name=pageKey + '_description' placeholder=fallback.description)= current.description || fallback.description
+    div
+      button.btn.btn-primary(type="submit") 保存SEO配置

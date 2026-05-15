@@ -1,0 +1,7 @@
+//- Source: playlist.html
+//- ⚠ Manual work: 1 item(s)
+//-
+//-   MANUAL: {maccms:foreach name="obj.vod_play_list" by="sort" id="vo"} needs controller pre-query
+
+//- MANUAL: maccms block (needs controller pre-query)class="active"{{INLINE_ENDIF}}><a href="`/vod/play/id/${vod._id}/sid/1/nid/1.html`">#{child.name}</a></li>
+| {/maccms:foreach}

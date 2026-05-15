@@ -1,0 +1,15 @@
+//- Source: desc.html
+//- ✓ No manual work needed
+
+div.stui-pannel.stui-pannel-bg.clearfix
+  div.stui-pannel-box
+    div.stui-pannel_hd
+      div.stui-pannel__head.clearfix
+        h3.title
+          img(src="#{maccms.pathTpl}statics/icon/icon_30.png")
+          | 剧情简介
+    div.stui-pannel_bd
+      p.col-pd.detail
+        span.detail-sketch #{stripHtml(vod.content).substring(0, 180)}
+        span.detail-content(style="display: none;") #{stripHtml(vod.content)}
+        a.detail-more(href="javascript:;") 详情  i.icon.iconfont.icon-moreunfold

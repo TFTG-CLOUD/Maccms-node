@@ -1,0 +1,57 @@
+extends ../layout
+block content
+  h2 编辑采集源
+  form#collect-edit-form(style="background:#fff;padding:20px;border-radius:4px;max-width:760px")
+    .form-group
+      label 采集源名称
+      input(type="text" name="name" value=source.name required)
+    .form-group
+      label 接口地址
+      input(type="text" name="url" value=source.url required)
+    .form-group
+      label 接口类型
+      select(name="type")
+        option(value="json" selected=source.type === 'json') JSON
+        option(value="xml" selected=source.type === 'xml') XML
+    .form-group
+      label AppID (可选)
+      input(type="text" name="appid" value=source.appid || '')
+    .form-group
+      label AppKey (可选)
+      input(type="text" name="appkey" value=source.appkey || '')
+    .form-group
+      label
+        input(type="checkbox" name="bind" value="1" checked=source.bind)
+        |  绑定模式（匹配到已有数据时执行更新与合并）
+    .form-group
+      label
+        input(type="checkbox" name="status" value="1" checked=source.status !== false)
+        |  启用采集源
+    button.btn.btn-primary(type="submit") 保存
+    a.btn(href="/admin/collect" style="margin-left:8px;background:#f5f5f5;color:#333") 返回
+
+  script.
+    document.getElementById('collect-edit-form').addEventListener('submit', async function (event) {
+      event.preventDefault();
+      const formData = new FormData(event.target);
+      const payload = {
+        name: formData.get('name'),
+        url: formData.get('url'),
+        type: formData.get('type'),
+        appid: formData.get('appid') || '',
+        appkey: formData.get('appkey') || '',
+        bind: formData.get('bind') === '1',
+        status: formData.get('status') === '1'
+      };
+
+      const response = await fetch('/admin/collect/#{source._id}', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (response.ok) {
+        location.href = '/admin/collect';
+        return;
+      }
+      alert('保存失败，请稍后重试');
+    });

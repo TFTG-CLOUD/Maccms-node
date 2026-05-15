@@ -1,0 +1,10 @@
+//- Source: vod_box_rank.html
+//- ⚠ Manual work: 1 item(s)
+//-
+//-   MANUAL: 3 inline conditionals embedded in text — needs structural Pug refactor
+
+li
+  a(href="`/vod/detail/id/${item._id}.html`", title="#{item.name}")
+    span.text-muted.pull-right.hidden-md
+      if item.remarks !== ''#{item.remarks.substring(0, 8)}ELIF:item.serial > 0第#{item.serial}集ELSE已完结ENDIF
+      span.badge{{INLINE_IF:key.===.1}}.badge-first{{INLINE_ENDIF}}{{INLINE_IF:key.===.2}}.badge-second{{INLINE_ENDIF}}{{INLINE_IF:key.===.3}}.badge-third{{INLINE_ENDIF}} #{key} #{item.name.substring(0, 8)}

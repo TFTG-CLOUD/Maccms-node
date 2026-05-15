@@ -1,0 +1,10 @@
+extends ../layout
+block content
+  .detail-container
+    h1= topic.name
+    if topic.content
+      .content !{topic.content}
+    if topic.relVods && topic.relVods.length
+      h3 相关影片
+      each vod in topic.relVods
+        a(href=macUrl("/vod/detail/id/" + vod._id + ".html"))= vod.name

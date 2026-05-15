@@ -1,0 +1,17 @@
+extends ../layout
+
+block content
+  .stui-pannel.stui-pannel-bg.clearfix
+    .stui-pannel-box
+      .stui-pannel_hd
+        .stui-pannel__head.active.bottom-line.clearfix
+          h3.title 专题
+      .stui-pannel_bd
+        ul.stui-vodlist.clearfix
+          each item in list
+            li.col-md-6.col-sm-4.col-xs-3
+              .stui-vodlist__box
+                a.stui-vodlist__thumb.lazyload(href=macUrl("/topic/detail/id/" + item._id + ".html") title=item.name data-original=item.pic || '')
+                  span.pic-text.text-right= item.name
+                .stui-vodlist__detail
+                  h4.title: a(href=macUrl("/topic/detail/id/" + item._id + ".html"))= item.name

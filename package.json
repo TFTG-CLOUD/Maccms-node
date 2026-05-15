@@ -1,0 +1,28 @@
+{
+  "name": "maccms-node",
+  "version": "1.0.0",
+  "description": "MacCMS v10 ported to Node.js (Express + Mongoose + Pug)",
+  "main": "app.js",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "start": "node app.js",
+    "dev": "nodemon app.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^8.0.0",
+    "pug": "^3.0.2",
+    "dotenv": "^16.3.1",
+    "node-cron": "^3.0.3",
+    "cheerio": "^1.0.0-rc.12",
+    "xml2js": "^0.6.2",
+    "node-fetch": "^2.7.0",
+    "connect-flash": "^0.1.1",
+    "express-session": "^1.17.3",
+    "bcryptjs": "^2.4.3",
+    "compression": "^1.7.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}

@@ -1,0 +1,8 @@
+extends ../layout
+block content
+  .detail-container
+    h1= actor.name
+    if actor.pic
+      img(src=actor.pic alt=actor.name style="max-width:200px")
+    if actor.content
+      .content !{actor.content}

@@ -1,0 +1,24 @@
+extends ../layout
+include ../public/paging
+
+block content
+  .type-header
+    if type
+      h2= type.name
+    else
+      h2 分类列表
+
+  .vod-list
+    each item in list
+      .vod-item
+        a(href=macUrl("/vod/detail/id/" + item._id + ".html"))
+          img(src=item.pic || '/images/nopic.png' alt=item.name)
+        .vod-info
+          a.title(href=macUrl("/vod/detail/id/" + item._id + ".html"))= item.name
+          .meta
+            if item.type
+              span= item.type.name
+            span= item.area || ''
+            span= item.year || ''
+
+  +paging(__PAGING__)

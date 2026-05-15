@@ -1,0 +1,55 @@
+extends ../layout
+
+block content
+  .detail-container
+    .detail-header
+      img.pic(src=vod.pic || '/images/nopic.png' alt=vod.name)
+      .detail-info
+        h1.title= vod.name
+        if vod.en
+          p.en= vod.en
+        .meta
+          if vod.type
+            span 分类: 
+              a(href=macUrl("/vod/type/id/" + vod.type._id + ".html"))= vod.type.name
+          if vod.area
+            span 地区: #{vod.area}
+          if vod.year
+            span 年份: #{vod.year}
+          if vod.lang
+            span 语言: #{vod.lang}
+          if vod.actor
+            span 主演: #{vod.actor}
+          if vod.director
+            span 导演: #{vod.director}
+          span 状态: #{vod.isEnd ? '完结' : (vod.serial || '连载中')}
+          if vod.total
+            span 总集数: #{vod.total}
+          span 点击: #{vod.hits || 0}
+          if vod.score
+            span 评分: #{vod.score}
+
+    if vod.playUrls && vod.playUrls.length
+      .play-section
+        h3 播放列表
+        each server, sIdx in vod.playUrls
+          .play-server
+            .server-name= server.server
+            each ep in server.episodes
+              a.play-link(href=macUrl("/vod/play/id/" + vod._id + "/sid/" + (sIdx + 1) + "/nid/" + (ep.nid || (index + 1)) + ".html"))= ep.name || ('第' + (index + 1) + '集')
+
+    if vod.content
+      .content-section
+        h3 剧情简介
+        .content !{vod.content}
+
+    if relatedVods && relatedVods.length
+      .related-section
+        h3 相关推荐
+        .vod-list
+          each item in relatedVods
+            .vod-item
+              a(href=macUrl("/vod/detail/id/" + item._id + ".html"))
+                img(src=item.pic || '/images/nopic.png' alt=item.name)
+              .vod-info
+                a.title(href=macUrl("/vod/detail/id/" + item._id + ".html"))= item.name

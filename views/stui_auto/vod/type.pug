@@ -1,0 +1,83 @@
+//- Source: type.html
+//- ⚠ Manual work: 16 item(s)
+//-
+//-   MANUAL: {maccms:type parent="'.$obj['type_id'].'" order="asc" by="sort" id="vo2" key="key2"} needs controller pre-query
+//-   MANUAL: {maccms:type parent="'.$obj['type_pid'].'" order="asc" by="sort" id="vo2" key="key2"} needs controller pre-query
+//-   MANUAL: {maccms:foreach name=":explode(',',$obj.parent.type_extend.class)"} needs controller pre-query
+//-   MANUAL: {maccms:foreach name=":explode(',',$obj.type_extend.class)"} needs controller pre-query
+//-   MANUAL: {maccms:foreach name=":explode(',',$obj.parent.type_extend.area)"} needs controller pre-query
+//-   MANUAL: {maccms:foreach name=":explode(',',$obj.type_extend.area)"} needs controller pre-query
+//-   MANUAL: {maccms:foreach name=":explode(',',$obj.parent.type_extend.year)"} needs controller pre-query
+//-   MANUAL: {maccms:foreach name=":explode(',',$obj.type_extend.year)"} needs controller pre-query
+//-   MANUAL: {maccms:vod num="36" paging="yes" type="current" order="desc" by="sort"} needs controller pre-query
+//-   MANUAL: Complex URL helper: {:mac_url_type($obj.type_id,['id'=>$obj['type_id']],'show')}
+//-   MANUAL: Complex URL helper: {:mac_url_type($vo2,[],'show')}
+//-   MANUAL: Complex URL helper: {:mac_url_type($obj.type_pid,['id'=>$obj['type_pid']],'show'
+//-   MANUAL: Complex URL helper: {:mac_url_type($obj,['class'=>$vo],'show')}
+//-   MANUAL: Complex URL helper: {:mac_url_type($obj,['area'=>$vo],'show')}
+//-   MANUAL: Complex URL helper: {:mac_url_type($obj,['year'=>$vo],'show')}
+//-   MANUAL: 2 inline conditionals embedded in text — needs structural Pug refactor
+
+html
+  head
+    include ../seo/vod_type
+    include ../block/include
+  body
+    include ../block/head
+    div.container
+      div.row
+        div.stui-pannel.stui-pannel-bg.clearfix
+          div.stui-pannel-box
+            ul.stui-screen__list.type-slide.bottom-line-dot.clearfix
+              li
+                span.text-muted 按类型
+              if vod.pid === 0
+                | <  // MANUAL: Inline conditional - needs structural Pug conversion a(href="(TODO: mac_url complex call)") 全部
+              //- MANUAL: maccms block (needs controller pre-query) class="active" {{INLINE_ENDIF}}><a href="(TODO: mac_url complex call)" class="text-muted">#{child.name}</a></li>
+            else
+              | <  // MANUAL: Inline conditional - needs structural Pug conversion a(href="(TODO: mac_url complex call)") 全部
+            //- MANUAL: maccms block (needs controller pre-query) class="active" {{INLINE_ENDIF}}><a href="(TODO: mac_url complex call)" class="text-muted">#{child.name}</a></li>
+
+        // 筛选
+        // <div class="stui-pannel_hd">
+        div.stui-pannel__head.active.bottom-line.clearfix
+          h3.title
+            img(src="#{maccms.pathTpl}statics/icon/icon_27.png")
+            | #{vod.name}
+        | vod.childids !== ''
+        ul.stui-screen__list.type-slide.bottom-line-dot.clearfix
+          li
+            span.text-muted 按类型
+          if vod.pid === 0
+            //- MANUAL: maccms block (needs controller pre-query)
+          else
+            //- MANUAL: maccms block (needs controller pre-query)
+        ul.stui-screen__list.type-slide.bottom-line-dot.clearfix
+          li
+            span.text-muted 按剧情
+          | {empty name="$obj.type_extend.class"}
+          //- MANUAL: maccms block (needs controller pre-query)class="hide"{{INLINE_ENDIF}} href="(TODO: mac_url complex call)">#{item}</a></li>
+          else
+            //- MANUAL: maccms block (needs controller pre-query)class="hide"{{INLINE_ENDIF}} href="(TODO: mac_url complex call)">#{item}</a></li>
+        ul.stui-screen__list.type-slide.bottom-line-dot.clearfix
+          li
+            span.text-muted 按地区
+          | {empty name="$obj.type_extend.area"}
+          //- MANUAL: maccms block (needs controller pre-query)class="hide"{{INLINE_ENDIF}} href="(TODO: mac_url complex call)">#{item}</a></li>
+          else
+            //- MANUAL: maccms block (needs controller pre-query)class="hide"{{INLINE_ENDIF}} href="(TODO: mac_url complex call)">#{item}</a></li>
+        ul.stui-screen__list.type-slide.clearfix
+          li
+            span.text-muted 按年份
+          | {empty name="$obj.type_extend.year"}
+          //- MANUAL: maccms block (needs controller pre-query)class="hide"{{INLINE_ENDIF}} href="(TODO: mac_url complex call)">#{item}</a></li>
+          else
+            //- MANUAL: maccms block (needs controller pre-query)class="hide"{{INLINE_ENDIF}} href="(TODO: mac_url complex call)">#{item}</a></li>
+      // end 筛选
+
+      div.stui-pannel_bd
+        ul.stui-vodlist.clearfix
+          //- MANUAL: maccms block (needs controller pre-query)
+
+  include ../block/page
+include ../block/foot

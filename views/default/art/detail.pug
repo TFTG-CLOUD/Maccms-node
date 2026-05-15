@@ -1,0 +1,8 @@
+extends ../layout
+block content
+  .detail-container
+    h1= art.name
+    if art.author
+      p 作者: #{art.author}
+    if art.content
+      .content !{art.content}

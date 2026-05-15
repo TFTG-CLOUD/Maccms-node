@@ -1,0 +1,12 @@
+html
+  head
+    | {include file="seo/index"}
+    | {include file="block/include"}
+  body
+    | {include file="block/head"}
+    div.container
+      div.row
+        | < !-- 幻灯片 -->
+        | {include file="index/list"} < !-- 分类列表 -->
+        | {include file="index/link"} < !-- 友情链接 -->
+    | {include file="block/foot"}

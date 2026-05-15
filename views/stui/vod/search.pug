@@ -1,0 +1,13 @@
+extends ../layout
+include ../mixins
+
+block content
+  if list && list.length
+    each vod in list
+      .stui-vodlist__media.col-pd
+        .thumb.lazyload(href=macUrl("/vod/detail/id/" + vod._id + ".html") title=vod.name data-original=vod.pic)
+        .detail
+          h3.title: a(href=macUrl("/vod/detail/id/" + vod._id + ".html"))= vod.name
+          p.data= vod.actor || ''
+
+  +page(pageNav)

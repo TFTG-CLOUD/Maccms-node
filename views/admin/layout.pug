@@ -1,0 +1,41 @@
+doctype html
+html(lang="zh-CN")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport" content="width=device-width, initial-scale=1.0")
+    title 后台管理 - #{maccms.siteName}
+    style.
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: 'Microsoft YaHei', sans-serif; background: #f0f2f5; }
+      .admin-header { background: #001529; color: #fff; padding: 0 20px; height: 50px; display: flex; align-items: center; justify-content: space-between; }
+      .admin-header h1 { font-size: 18px; }
+      .admin-header a { color: #ccc; text-decoration: none; }
+      .admin-sidebar { width: 200px; background: #001529; color: #fff; position: fixed; top: 50px; bottom: 0; overflow-y: auto; }
+      .admin-sidebar a { display: block; padding: 12px 20px; color: #ccc; text-decoration: none; font-size: 14px; }
+      .admin-sidebar a:hover, .admin-sidebar a.active { background: #1890ff; color: #fff; }
+      .admin-main { margin-left: 200px; padding: 20px; }
+      table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 4px; overflow: hidden; }
+      th { background: #fafafa; padding: 12px; text-align: left; font-size: 14px; border-bottom: 1px solid #f0f0f0; }
+      td { padding: 12px; font-size: 14px; border-bottom: 1px solid #f0f0f0; }
+      .btn { padding: 6px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; text-decoration: none; display: inline-block; }
+      .btn-primary { background: #1890ff; color: #fff; }
+      .btn-danger { background: #ff4d4f; color: #fff; }
+      .btn-success { background: #52c41a; color: #fff; }
+      .form-group { margin-bottom: 15px; }
+      .form-group label { display: block; margin-bottom: 5px; font-size: 14px; font-weight: bold; }
+      .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 14px; }
+      .form-group textarea { min-height: 100px; }
+  body
+    .admin-header
+      h1 #{maccms.siteName} 后台
+      a(href="/admin/logout") 退出
+    .admin-sidebar
+      a(href="/admin") 首页
+      a(href="/admin/vod") 影视管理
+      a(href="/admin/type") 分类管理
+      a(href="/admin/seo") SEO配置
+      a(href="/admin/ad") 广告位管理
+      a(href="/admin/collect") 采集源管理
+      a(href="/admin/timming") 定时任务
+    .admin-main
+      block content

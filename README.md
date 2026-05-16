@@ -175,6 +175,8 @@ http://localhost:3000/admin/login
 | `SESSION_SECRET` | Session 密钥 |
 | `ADMIN_SESSION_MAX_AGE_MS` | 后台登录态有效期，单位毫秒，默认 30 天 |
 | `TRUST_PROXY` | 反向代理层数或规则；走 Caddy/Nginx 时建议设置为 `1` |
+| `SEARCH_RATE_LIMIT_WINDOW_MS` | 前台搜索单 IP 限流窗口，默认 `60000` 毫秒 |
+| `SEARCH_RATE_LIMIT_MAX` | 前台搜索单 IP 在窗口内允许次数，默认 `6` |
 | `TEMPLATE_THEME` | 当前主题，默认 `stui` |
 | `URL_MODE` | 路由模式，`clean` 或 `pathinfo` |
 | `CACHE_ENABLE` | 是否启用页面缓存，`true` 时开启 |

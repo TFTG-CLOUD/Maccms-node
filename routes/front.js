@@ -6,8 +6,8 @@ const { createRateLimiter, getClientIp } = require('../middleware/rateLimit');
 const RssController = require('../controllers/front/RssController');
 
 const searchRateLimiter = createRateLimiter({
-  windowMs: 60 * 1000,
-  max: 30,
+  windowMs: Number(process.env.SEARCH_RATE_LIMIT_WINDOW_MS) || 60 * 1000,
+  max: Number(process.env.SEARCH_RATE_LIMIT_MAX) || 6,
   keyGenerator: (req) => `vod-search:${getClientIp(req)}`,
   message: '搜索过于频繁，请稍后再试'
 });

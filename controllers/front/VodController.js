@@ -21,6 +21,10 @@ const RELATED_FIELDS = '_id name actor pic remarks serial isEnd';
 const LIST_PAGE_SIZE = 24;
 const RELATED_VOD_LIMIT = 12;
 
+function escapeRegex(value) {
+  return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function buildVodViewModel(vod) {
   const normalizedVod = normalizeMediaEntity(vod);
   const contentText = sanitizePlainText(vod?.content || '');
@@ -288,12 +292,13 @@ class VodController {
       });
     }
 
+    const keywordRegex = new RegExp(escapeRegex(wd));
     const query = {
       status: 1,
       $or: [
-        { name: { $regex: wd, $options: 'i' } },
-        { actor: { $regex: wd, $options: 'i' } },
-        { director: { $regex: wd, $options: 'i' } }
+        { name: keywordRegex },
+        { actor: keywordRegex },
+        { director: keywordRegex }
       ]
     };
 

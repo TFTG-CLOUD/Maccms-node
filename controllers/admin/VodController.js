@@ -9,6 +9,10 @@ function invalidateFrontCaches() {
   clearCache();
 }
 
+function escapeRegex(value) {
+  return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 class VodController {
   async index(req, res) {
     const page = parseInt(req.query.page) || 1;
@@ -19,7 +23,7 @@ class VodController {
       if (!Number.isNaN(status)) filter.status = status;
     }
     if (req.query.type) filter.type = { $in: buildMixedIdCandidates(req.query.type) };
-    if (req.query.wd) filter.name = { $regex: req.query.wd, $options: 'i' };
+    if (req.query.wd) filter.name = new RegExp(escapeRegex(req.query.wd));
     const total = await Vod.countDocuments(filter);
     const types = await Type.find({ mid: 1, status: true }).sort({ sort: 1 }).lean();
     const typeMap = new Map(types.map((item) => [String(item._id), item]));

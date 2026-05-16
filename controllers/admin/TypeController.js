@@ -139,7 +139,16 @@ async function validateTypeRemoval(typeId) {
 }
 
 function wantsJson(req) {
-  return req.xhr || req.headers.accept?.includes('application/json');
+  return req.xhr
+    || req.headers.accept?.includes('application/json')
+    || req.headers['content-type']?.includes('application/json');
+}
+
+function respondSuccess(req, res, redirect) {
+  if (wantsJson(req)) {
+    return res.json({ code: 1, msg: 'ok', redirect });
+  }
+  return res.redirect(redirect);
 }
 
 function respondValidationError(req, res, message) {
@@ -177,7 +186,7 @@ class TypeController {
       ...payload
     });
     invalidateFrontCaches();
-    res.redirect('/admin/type');
+    return respondSuccess(req, res, '/admin/type');
   }
   async edit(req, res) {
     const rawType = await findOneByMixedId(Type, req.params.id);
@@ -193,7 +202,7 @@ class TypeController {
 
     await Type.findOneAndUpdate({ _id: { $in: buildMixedIdCandidates(req.params.id) } }, payload);
     invalidateFrontCaches();
-    res.redirect('/admin/type');
+    return respondSuccess(req, res, '/admin/type');
   }
   async remove(req, res) {
     const validationError = await validateTypeRemoval(req.params.id);
@@ -212,5 +221,6 @@ TypeController.validateTypeRemoval = validateTypeRemoval;
 TypeController.buildParentOptions = buildParentOptions;
 TypeController.getModuleLabel = getModuleLabel;
 TypeController.allocateNextTypeId = allocateNextTypeId;
+TypeController.wantsJson = wantsJson;
 
 module.exports = TypeController;

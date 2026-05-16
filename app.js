@@ -19,10 +19,15 @@ const { getSeoSettings } = require('./utils/seoConfig');
 const AdSetting = require('./models/AdSetting');
 const { getAdSettings } = require('./utils/adConfig');
 const collectTaskRunner = require('./services/CollectTaskRunner');
+const { MongoSessionStore } = require('./services/MongoSessionStore');
 
 const app = express();
 const STATIC_CACHE_MAX_AGE = '1d';
 const FRONT_NAV_CACHE_TTL_MS = Math.max(1, Number(config.frontNavCacheTime || 600)) * 1000;
+const ADMIN_SESSION_MAX_AGE_MS = Math.max(
+  60 * 60 * 1000,
+  Number(process.env.ADMIN_SESSION_MAX_AGE_MS) || 30 * 24 * 60 * 60 * 1000
+);
 
 app.set('view engine', 'pug');
 app.set('views', [
@@ -48,10 +53,17 @@ if (config.pageCacheStatus) {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(session({
+  name: 'maccms.sid',
   secret: process.env.SESSION_SECRET,
   resave: false,
-  saveUninitialized: true,
-  cookie: { maxAge: 86400000 }
+  saveUninitialized: false,
+  rolling: true,
+  store: new MongoSessionStore({ ttlMs: ADMIN_SESSION_MAX_AGE_MS }),
+  cookie: {
+    maxAge: ADMIN_SESSION_MAX_AGE_MS,
+    httpOnly: true,
+    sameSite: 'lax'
+  }
 }));
 app.use(flash());
 

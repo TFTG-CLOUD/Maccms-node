@@ -67,6 +67,19 @@ test('buildParentOptions excludes current type and annotates module labels', () 
   ]);
 });
 
+test('wantsJson treats json fetch requests as api-style submissions', () => {
+  const req = {
+    xhr: false,
+    headers: {
+      accept: '*/*',
+      'content-type': 'application/json'
+    }
+  };
+
+  assert.equal(TypeController.wantsJson(req), true);
+  assert.equal(CollectController.wantsJson(req), true);
+});
+
 test('allocateNextTypeId returns the next numeric category id', async (t) => {
   const originalFindOne = Type.findOne.bind(Type);
 

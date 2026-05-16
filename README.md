@@ -107,6 +107,7 @@ npm install
 PORT=3000
 MONGODB_URI=mongodb://127.0.0.1:27017/maccms_node
 SESSION_SECRET=replace-with-a-long-random-string
+ADMIN_SESSION_MAX_AGE_MS=2592000000
 
 SITE_TITLE=唐诡影视
 SITE_NAME=唐诡影视
@@ -165,6 +166,7 @@ http://localhost:3000/admin/login
 | `MONGODB_URI` | MongoDB 连接字符串 |
 | `PORT` | 服务端口 |
 | `SESSION_SECRET` | Session 密钥 |
+| `ADMIN_SESSION_MAX_AGE_MS` | 后台登录态有效期，单位毫秒，默认 30 天 |
 | `TEMPLATE_THEME` | 当前主题，默认 `stui` |
 | `URL_MODE` | 路由模式，`clean` 或 `pathinfo` |
 | `CACHE_ENABLE` | 是否启用页面缓存，`true` 时开启 |

@@ -142,7 +142,16 @@ async function ensureUniqueCollectSource(payload, currentId = null) {
 }
 
 function wantsJson(req) {
-  return req.xhr || req.headers.accept?.includes('application/json');
+  return req.xhr
+    || req.headers.accept?.includes('application/json')
+    || req.headers['content-type']?.includes('application/json');
+}
+
+function respondSuccess(req, res, redirect) {
+  if (wantsJson(req)) {
+    return res.json({ code: 1, msg: 'ok', redirect });
+  }
+  return res.redirect(redirect);
 }
 
 function respondValidationError(req, res, message) {
@@ -169,7 +178,7 @@ class CollectController {
     if (validationError) return respondValidationError(req, res, validationError);
 
     await CollectSource.create(payload);
-    res.redirect('/admin/collect');
+    return respondSuccess(req, res, '/admin/collect');
   }
   async edit(req, res) {
     const source = await CollectSource.findById(req.params.id).lean();
@@ -190,7 +199,7 @@ class CollectController {
     if (validationError) return respondValidationError(req, res, validationError);
 
     await CollectSource.findByIdAndUpdate(req.params.id, payload);
-    res.redirect('/admin/collect');
+    return respondSuccess(req, res, '/admin/collect');
   }
   async remove(req, res) {
     await CollectSource.findByIdAndDelete(req.params.id);
@@ -283,5 +292,6 @@ CollectController.buildBindingRowsForView = buildBindingRowsForView;
 CollectController.normalizeCollectSourceUrl = normalizeCollectSourceUrl;
 CollectController.parseCollectSourcePayload = parseCollectSourcePayload;
 CollectController.ensureUniqueCollectSource = ensureUniqueCollectSource;
+CollectController.wantsJson = wantsJson;
 
 module.exports = CollectController;

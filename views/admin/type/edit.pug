@@ -2,7 +2,7 @@ extends ../layout
 block content
   - const typeExtend = type.extend || {}
   h2 编辑分类
-  form#type-edit-form(style="background:#fff;padding:20px;border-radius:4px;max-width:760px")
+  form#type-edit-form(action=`/admin/type/${type._id}` style="background:#fff;padding:20px;border-radius:4px;max-width:760px")
     .form-group
       label 分类名称
       input(type="text" name="name" required value=type.name)
@@ -67,7 +67,7 @@ block content
       event.preventDefault();
       const formData = new FormData(event.target);
       const payload = Object.fromEntries(formData.entries());
-      const response = await fetch('/admin/type/#{type._id}', {
+      const response = await fetch(event.target.action, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

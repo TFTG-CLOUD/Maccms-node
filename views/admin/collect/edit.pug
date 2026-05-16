@@ -1,7 +1,7 @@
 extends ../layout
 block content
   h2 编辑采集源
-  form#collect-edit-form(style="background:#fff;padding:20px;border-radius:4px;max-width:760px")
+  form#collect-edit-form(action=`/admin/collect/${source._id}` style="background:#fff;padding:20px;border-radius:4px;max-width:760px")
     .form-group
       label 采集源名称
       input(type="text" name="name" value=source.name required)
@@ -44,7 +44,7 @@ block content
         status: formData.get('status') === '1'
       };
 
-      const response = await fetch('/admin/collect/#{source._id}', {
+      const response = await fetch(event.target.action, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

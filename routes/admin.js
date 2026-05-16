@@ -29,12 +29,23 @@ router.post('/login', loginRateLimiter, async (req, res) => {
     return res.redirect('/admin/login');
   }
   req.session.admin = { id: admin._id, name: admin.name, groupId: admin.groupId };
-  res.redirect('/admin');
+  req.session.save((error) => {
+    if (error) {
+      req.flash('error', '登录状态保存失败，请稍后重试');
+      return res.redirect('/admin/login');
+    }
+    return res.redirect('/admin');
+  });
 });
 
 router.get('/logout', (req, res) => {
-  req.session.admin = null;
-  res.redirect('/admin/login');
+  if (!req.session) {
+    return res.redirect('/admin/login');
+  }
+  req.session.destroy(() => {
+    res.clearCookie('maccms.sid');
+    return res.redirect('/admin/login');
+  });
 });
 
 router.use(adminAuth);

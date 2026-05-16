@@ -1,7 +1,6 @@
 const mongoose = require('mongoose');
 const config = require('../config');
 
-const CANONICAL_ROOT_NAMES = ['电影', '连续剧', '综艺', '动漫'];
 const HOME_TITLE_ALIASES = {
   连续剧: '电视剧'
 };
@@ -250,13 +249,7 @@ function findTypeById(types, typeId) {
 }
 
 function selectNavTypes(types) {
-  const roots = (types || []).filter((item) => item && item.status !== false && !hasValue(item.pid));
-  const preferred = CANONICAL_ROOT_NAMES
-    .map((name) => pickPreferredType(roots.filter((item) => item.name === name)))
-    .filter(Boolean);
-
-  if (preferred.length) return preferred;
-  return dedupeByName(roots);
+  return dedupeByName((types || []).filter((item) => item && item.status !== false && !hasValue(item.pid)));
 }
 
 function resolveTypeSelection(types, requestedId) {
@@ -452,7 +445,6 @@ async function findOneByMixedId(Model, id, populate = '') {
 }
 
 module.exports = {
-  CANONICAL_ROOT_NAMES,
   buildMixedIdCandidates,
   buildPlayerSource,
   buildVodRatingMeta,

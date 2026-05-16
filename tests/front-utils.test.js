@@ -143,7 +143,7 @@ test('resolveTypeSelection lets child pages reuse sibling filters from parent tr
   );
 });
 
-test('selectNavTypes keeps only canonical first-level categories', () => {
+test('selectNavTypes returns all parent categories sorted by sort', () => {
   const types = [
     { _id: 20, name: '电影', pid: null, sort: 1 },
     { _id: 'dup-movie', name: '电影', pid: null, sort: 2 },
@@ -153,7 +153,7 @@ test('selectNavTypes keeps only canonical first-level categories', () => {
     { _id: 'cn-tv', name: '国产剧', pid: null, sort: 5 }
   ];
 
-  assert.deepEqual(selectNavTypes(types).map((item) => item.name), ['电影', '连续剧', '综艺', '动漫']);
+  assert.deepEqual(selectNavTypes(types).map((item) => item.name), ['电影', '连续剧', '综艺', '动漫', '国产剧']);
   assert.equal(selectNavTypes(types)[0]._id, 20);
 });
 

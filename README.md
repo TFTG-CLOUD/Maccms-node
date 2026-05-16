@@ -141,6 +141,12 @@ ADMIN_INIT_NICKNAME=超级管理员
 node scripts/seed.js
 ```
 
+初始化管理员账号并补充内置分类:
+
+```bash
+node scripts/seed.js --with-types
+```
+
 开发模式启动:
 
 ```bash
@@ -311,6 +317,13 @@ node-back/public/upload/
 
 ```bash
 node scripts/seed.js
+npm start
+```
+
+如果你需要在空库中一并写入内置分类:
+
+```bash
+node scripts/seed.js --with-types
 npm start
 ```
 

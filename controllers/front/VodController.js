@@ -270,9 +270,10 @@ class VodController {
 
   async search(req, res) {
     const params = req.mac.params;
-    const wd = params.wd || '';
-    const page = params.page || 1;
+    const wd = String(params.wd || '').trim();
+    const page = Math.max(1, parseInt(params.page, 10) || 1);
     const pagesize = LIST_PAGE_SIZE;
+    console.log(req.ip);
     const seoTemplates = res.locals.seoSettings || config.seo;
 
     if (!wd) {
@@ -295,24 +296,29 @@ class VodController {
     const keywordRegex = new RegExp(escapeRegex(wd));
     const query = {
       status: 1,
-      $or: [
-        { name: keywordRegex },
-        { actor: keywordRegex },
-        { director: keywordRegex }
-      ]
+      name: keywordRegex
     };
 
-    const [total, list] = await Promise.all([
-      Vod.countDocuments(query),
-      Vod.find(query)
+    let list = [];
+    try {
+      list = await Vod.find(query)
         .select(LIST_FIELDS)
         .sort({ updatedAt: -1 })
         .skip((page - 1) * pagesize)
-        .limit(pagesize)
-        .lean()
-    ]);
+        .limit(pagesize + 1)
+        .maxTimeMS(1500)
+        .lean();
+    } catch (error) {
+      if (error?.code === 50 || error?.codeName === 'MaxTimeMSExpired') {
+        return res.status(503).render('error', { message: '搜索超时，请稍后再试或换个关键词' });
+      }
+      throw error;
+    }
 
-    const totalPages = Math.ceil(total / pagesize);
+    const hasMore = list.length > pagesize;
+    if (hasMore) list = list.slice(0, pagesize);
+    const total = (page - 1) * pagesize + list.length + (hasMore ? 1 : 0);
+    const totalPages = hasMore ? page + 1 : page;
     const pageNav = buildPageNav(req.path.replace(/page\/\d+/, '').replace(/\.html$/, '').replace(/\/$/, '') + '/', page, totalPages);
 
     res.render('stui/vod/search', {

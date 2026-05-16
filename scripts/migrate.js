@@ -18,6 +18,7 @@ const SQL_FILE = '/tmp/cmscms_2026-05-15_00-43-08_mysql_data_3Q3YY.sql';
 const LEGACY_DIR = path.join(__dirname, '..', 'old');
 const LEGACY_SEO_FILE = path.join(LEGACY_DIR, 'maccms.php');
 const LEGACY_BIND_FILE = path.join(LEGACY_DIR, 'bind.php');
+const UPSERT_BATCH_SIZE = Math.max(100, Number(process.env.MIGRATE_BATCH_SIZE) || 500);
 
 function parseIntVal(v) {
   return v === null || v === '' ? 0 : parseInt(v, 10);
@@ -373,22 +374,40 @@ function parseLegacyBindMap(legacyBindConfig) {
   return bindMap;
 }
 
-async function bulkUpsert(col, docs) {
-  const batch = docs.splice(0, docs.length);
-  if (batch.length === 0) return 0;
-  const ops = batch.map((doc) => ({
-    updateOne: {
-      filter: { _id: doc._id },
-      update: { $setOnInsert: doc },
-      upsert: true
+async function bulkUpsert(col, docs, batchSize = UPSERT_BATCH_SIZE) {
+  if (!Array.isArray(docs) || docs.length === 0) return 0;
+
+  let processed = 0;
+  for (let start = 0; start < docs.length; start += batchSize) {
+    const batch = docs.slice(start, start + batchSize);
+    const ops = batch.map((doc) => ({
+      updateOne: {
+        filter: { _id: doc._id },
+        update: { $setOnInsert: doc },
+        upsert: true
+      }
+    }));
+    try {
+      await col.bulkWrite(ops, { ordered: false });
+    } catch (error) {
+      console.error('bulkWrite error:', error.message);
     }
-  }));
-  try {
-    await col.bulkWrite(ops, { ordered: false });
-  } catch (error) {
-    console.error('bulkWrite error:', error.message);
+    processed += batch.length;
   }
-  return batch.length;
+
+  return processed;
+}
+
+async function pushNormalizedDoc(state, tableName, doc) {
+  const tracker = state[tableName];
+  if (!tracker || !doc) return;
+  tracker.buffer.push(doc);
+  if (tracker.buffer.length < UPSERT_BATCH_SIZE) return;
+
+  const batch = tracker.buffer;
+  tracker.buffer = [];
+  tracker.count += await bulkUpsert(tracker.col, batch, UPSERT_BATCH_SIZE);
+  console.log(`${tableName}:`, tracker.count);
 }
 
 async function upsertSeoSetting(pages) {
@@ -430,8 +449,9 @@ async function main() {
   const flush = async (tableName) => {
     const tracker = state[tableName];
     if (!tracker || tracker.buffer.length === 0) return;
-    tracker.count += await bulkUpsert(tracker.col, tracker.buffer);
+    const batch = tracker.buffer;
     tracker.buffer = [];
+    tracker.count += await bulkUpsert(tracker.col, batch, UPSERT_BATCH_SIZE);
     console.log(`${tableName}:`, tracker.count);
   };
 
@@ -464,12 +484,12 @@ async function main() {
             const row = parseSqlRow(state[activeTable].cols, rowStr);
             if (!row) continue;
             if (activeTable === 'mac_type' && row.type_id && row.type_name) {
-              state[activeTable].buffer.push(state[activeTable].normalize(row));
+              await pushNormalizedDoc(state, activeTable, state[activeTable].normalize(row));
             } else if (activeTable === 'mac_vod' && row.vod_id && row.vod_name) {
-              state[activeTable].buffer.push(state[activeTable].normalize(row));
+              await pushNormalizedDoc(state, activeTable, state[activeTable].normalize(row));
             } else if (activeTable === 'mac_collect' && row.collect_id && row.collect_name) {
               const doc = state[activeTable].normalize(row);
-              state[activeTable].buffer.push(doc);
+              await pushNormalizedDoc(state, activeTable, doc);
               sourceHashMap.set(crypto.createHash('md5').update(doc.url).digest('hex'), doc._id);
             }
           } catch (error) {}
@@ -488,12 +508,12 @@ async function main() {
       try {
         const row = parseSqlRow(state[activeTable].cols, line);
         if (activeTable === 'mac_type' && row.type_id && row.type_name) {
-          state[activeTable].buffer.push(state[activeTable].normalize(row));
+          await pushNormalizedDoc(state, activeTable, state[activeTable].normalize(row));
         } else if (activeTable === 'mac_vod' && row.vod_id && row.vod_name) {
-          state[activeTable].buffer.push(state[activeTable].normalize(row));
+          await pushNormalizedDoc(state, activeTable, state[activeTable].normalize(row));
         } else if (activeTable === 'mac_collect' && row.collect_id && row.collect_name) {
           const doc = state[activeTable].normalize(row);
-          state[activeTable].buffer.push(doc);
+          await pushNormalizedDoc(state, activeTable, doc);
           sourceHashMap.set(crypto.createHash('md5').update(doc.url).digest('hex'), doc._id);
         }
       } catch (error) {}
@@ -597,5 +617,7 @@ module.exports = {
   parseSqlRow,
   normalizeCollectSource,
   normalizeType,
-  normalizeVod
+  normalizeVod,
+  bulkUpsert,
+  shouldFlushCount: (count, batchSize = UPSERT_BATCH_SIZE) => count >= batchSize
 };

@@ -5,6 +5,7 @@ const os = require('os');
 const path = require('path');
 
 const {
+  bulkUpsert,
   parseLegacyBindMap,
   parseLegacySeoSettings,
   parsePhpArrayFile
@@ -72,4 +73,19 @@ test('parseLegacyBindMap keeps md5 collect url bindings', () => {
   assert.equal(map.size, 1);
   assert.equal(map.get('7a4856e7b6a1e1a2580a9b69cdc7233c_5').remoteTypeId, '5');
   assert.equal(map.get('7a4856e7b6a1e1a2580a9b69cdc7233c_5').localTypeId, '6');
+});
+
+test('bulkUpsert splits writes into smaller batches', async () => {
+  const calls = [];
+  const mockCollection = {
+    async bulkWrite(ops) {
+      calls.push(ops.length);
+    }
+  };
+
+  const docs = Array.from({ length: 1200 }, (_, index) => ({ _id: index + 1 }));
+  const count = await bulkUpsert(mockCollection, docs, 500);
+
+  assert.equal(count, 1200);
+  assert.deepEqual(calls, [500, 500, 200]);
 });

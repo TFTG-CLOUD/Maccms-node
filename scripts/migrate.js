@@ -87,7 +87,10 @@ function parseSqlRow(cols, valuesStr) {
 }
 
 function extractRows(line) {
-  const rows = [];
+  return Array.from(iterateSqlRows(line));
+}
+
+function * iterateSqlRows(line) {
   let idx = 0;
 
   while (idx < line.length) {
@@ -117,11 +120,9 @@ function extractRows(line) {
 
     if (closeIdx === -1) break;
 
-    rows.push(line.substring(openParen + 1, closeIdx));
+    yield line.slice(openParen + 1, closeIdx);
     idx = closeIdx + 1;
   }
-
-  return rows;
 }
 
 function normalizeVod(row) {
@@ -478,8 +479,7 @@ async function main() {
       if (trackedTable) {
         activeTable = trackedTable;
         state[activeTable].mode = 'data';
-        const rows = extractRows(line);
-        for (const rowStr of rows) {
+        for (const rowStr of iterateSqlRows(line)) {
           try {
             const row = parseSqlRow(state[activeTable].cols, rowStr);
             if (!row) continue;
@@ -609,6 +609,7 @@ if (require.main === module) {
 
 module.exports = {
   extractRows,
+  iterateSqlRows,
   parseLegacyBindMap,
   parseLegacySeoSettings,
   parsePhpArrayBody,

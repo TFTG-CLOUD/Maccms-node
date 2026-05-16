@@ -6,6 +6,7 @@ const path = require('path');
 
 const {
   bulkUpsert,
+  iterateSqlRows,
   parseLegacyBindMap,
   parseLegacySeoSettings,
   parsePhpArrayFile
@@ -88,4 +89,10 @@ test('bulkUpsert splits writes into smaller batches', async () => {
 
   assert.equal(count, 1200);
   assert.deepEqual(calls, [500, 500, 200]);
+});
+
+test('iterateSqlRows streams rows from multi-value insert lines', () => {
+  const rows = Array.from(iterateSqlRows("INSERT INTO `mac_vod` VALUES (1,'A, B (test)'),(2,'C');"));
+
+  assert.deepEqual(rows, ["1,'A, B (test)'", "2,'C'"]);
 });

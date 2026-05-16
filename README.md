@@ -108,6 +108,7 @@ PORT=3000
 MONGODB_URI=mongodb://127.0.0.1:27017/maccms_node
 SESSION_SECRET=replace-with-a-long-random-string
 ADMIN_SESSION_MAX_AGE_MS=2592000000
+TRUST_PROXY=1
 
 SITE_TITLE=唐诡影视
 SITE_NAME=唐诡影视
@@ -173,6 +174,7 @@ http://localhost:3000/admin/login
 | `PORT` | 服务端口 |
 | `SESSION_SECRET` | Session 密钥 |
 | `ADMIN_SESSION_MAX_AGE_MS` | 后台登录态有效期，单位毫秒，默认 30 天 |
+| `TRUST_PROXY` | 反向代理层数或规则；走 Caddy/Nginx 时建议设置为 `1` |
 | `TEMPLATE_THEME` | 当前主题，默认 `stui` |
 | `URL_MODE` | 路由模式，`clean` 或 `pathinfo` |
 | `CACHE_ENABLE` | 是否启用页面缓存，`true` 时开启 |
@@ -181,6 +183,50 @@ http://localhost:3000/admin/login
 | `ENABLE_CRON` | 是否启用定时任务轮询 |
 | `QR_TARGET_URL` | 二维码目标地址 |
 | `ADMIN_INIT_*` | 初始化管理员账号信息 |
+
+## Caddy 反向代理示例
+
+如果你用 Caddy 反向代理 `node-back`，推荐把 `.env` 里的下面这个配置打开:
+
+```env
+TRUST_PROXY=1
+```
+
+这表示应用信任一层反向代理，适合常见的单层 Caddy -> Node 部署。这样登录限流、搜索限流和后台 session 才能正确识别真实客户端 IP。
+
+一个基础的 `Caddyfile` 示例:
+
+```caddy
+example.com {
+    encode gzip zstd
+
+    reverse_proxy 127.0.0.1:3000 {
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-Host {host}
+    }
+}
+```
+
+如果你同时提供 `www` 和主域名，也可以这样写:
+
+```caddy
+example.com, www.example.com {
+    encode gzip zstd
+
+    reverse_proxy 127.0.0.1:3000 {
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-Host {host}
+    }
+}
+```
+
+说明:
+
+- Node 应用默认监听 `3000`，如果你改了 `PORT`，这里也要对应修改
+- 如果你的链路不止一层代理，需要按实际代理层数调整 `TRUST_PROXY`
+- 如果你只是在本机直接访问 `localhost:3000`，不需要 Caddy，也可以把 `TRUST_PROXY` 留空或设为 `false`
 
 ## 路由兼容模式
 

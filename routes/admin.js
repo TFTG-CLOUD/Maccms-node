@@ -10,12 +10,12 @@ const SeoController = require('../controllers/admin/SeoController');
 const AdController = require('../controllers/admin/AdController');
 const Admin = require('../models/Admin');
 const bcrypt = require('bcryptjs');
-const { createRateLimiter } = require('../middleware/rateLimit');
+const { createRateLimiter, getClientIp } = require('../middleware/rateLimit');
 
 const loginRateLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,
   max: 10,
-  keyGenerator: (req) => `admin-login:${req.ip}:${String(req.body?.name || '').trim().toLowerCase()}`,
+  keyGenerator: (req) => `admin-login:${getClientIp(req)}:${String(req.body?.name || '').trim().toLowerCase()}`,
   message: '登录尝试过于频繁，请 15 分钟后再试'
 });
 

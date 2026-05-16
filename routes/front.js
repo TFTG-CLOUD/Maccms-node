@@ -2,13 +2,13 @@ const express = require('express');
 const router = express.Router();
 const macRouter = require('../middleware/macRouter');
 const { capitalize } = require('../utils/helpers');
-const { createRateLimiter } = require('../middleware/rateLimit');
+const { createRateLimiter, getClientIp } = require('../middleware/rateLimit');
 const RssController = require('../controllers/front/RssController');
 
 const searchRateLimiter = createRateLimiter({
   windowMs: 60 * 1000,
   max: 30,
-  keyGenerator: (req) => `vod-search:${req.ip}`,
+  keyGenerator: (req) => `vod-search:${getClientIp(req)}`,
   message: '搜索过于频繁，请稍后再试'
 });
 

@@ -28,6 +28,19 @@ const ADMIN_SESSION_MAX_AGE_MS = Math.max(
   60 * 60 * 1000,
   Number(process.env.ADMIN_SESSION_MAX_AGE_MS) || 30 * 24 * 60 * 60 * 1000
 );
+const TRUST_PROXY = process.env.TRUST_PROXY;
+
+if (TRUST_PROXY !== undefined && TRUST_PROXY !== '') {
+  if (TRUST_PROXY === 'true') {
+    app.set('trust proxy', true);
+  } else if (TRUST_PROXY === 'false') {
+    app.set('trust proxy', false);
+  } else if (/^\d+$/.test(TRUST_PROXY)) {
+    app.set('trust proxy', Number(TRUST_PROXY));
+  } else {
+    app.set('trust proxy', TRUST_PROXY);
+  }
+}
 
 app.set('view engine', 'pug');
 app.set('views', [

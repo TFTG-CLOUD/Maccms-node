@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { createRateLimiter, getClientIp } = require('../middleware/rateLimit');
+const { createRateLimiter, getClientIp, getClientIpGroup } = require('../middleware/rateLimit');
 
 function createMockRes() {
   return {
@@ -78,4 +78,10 @@ test('createRateLimiter works with forwarded client ip extraction', () => {
 
   assert.equal(nextCalls, 1);
   assert.equal(blockedRes.statusCode, 429);
+});
+
+test('getClientIpGroup groups ipv4 addresses by /24 subnet', () => {
+  assert.equal(getClientIpGroup({ ip: '116.179.33.71', headers: {} }), '116.179.33.0/24');
+  assert.equal(getClientIpGroup({ ip: '116.179.33.17', headers: {} }), '116.179.33.0/24');
+  assert.equal(getClientIpGroup({ ip: '66.249.74.12', headers: {} }), '66.249.74.0/24');
 });

@@ -17,6 +17,19 @@ function getClientIp(req) {
   return String(req.connection?.remoteAddress || req.socket?.remoteAddress || 'unknown').trim() || 'unknown';
 }
 
+function getClientIpGroup(req) {
+  const ip = getClientIp(req);
+  const ipv4 = ip.match(/(?:^|:)(\d{1,3}\.\d{1,3}\.\d{1,3})\.\d{1,3}$/);
+  if (ipv4) return `${ipv4[1]}.0/24`;
+
+  const normalized = ip.replace(/^\[|\]$/g, '');
+  if (normalized.includes(':')) {
+    return normalized.split(':').slice(0, 4).join(':') + '::/64';
+  }
+
+  return ip;
+}
+
 function createRateLimiter(options = {}) {
   const windowMs = Math.max(1000, Number(options.windowMs || 60 * 1000));
   const max = Math.max(1, Number(options.max || 60));
@@ -52,5 +65,6 @@ function createRateLimiter(options = {}) {
 
 module.exports = {
   createRateLimiter,
-  getClientIp
+  getClientIp,
+  getClientIpGroup
 };

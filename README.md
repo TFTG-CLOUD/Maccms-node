@@ -171,15 +171,24 @@ http://localhost:3000/admin/login
 | 变量 | 说明 |
 | --- | --- |
 | `MONGODB_URI` | MongoDB 连接字符串 |
+| `REDIS_URL` | Redis 连接字符串；配置后搜索限流会改为多进程共享 |
 | `PORT` | 服务端口 |
 | `SESSION_SECRET` | Session 密钥 |
 | `ADMIN_SESSION_MAX_AGE_MS` | 后台登录态有效期，单位毫秒，默认 30 天 |
 | `TRUST_PROXY` | 反向代理层数或规则；走 Caddy/Nginx 时建议设置为 `1` |
-| `SEARCH_RATE_LIMIT_WINDOW_MS` | 前台搜索单 IP 限流窗口，默认 `60000` 毫秒 |
-| `SEARCH_RATE_LIMIT_MAX` | 前台搜索单 IP 在窗口内允许次数，默认 `6` |
+| `CRON_PRIMARY_ONLY` | `true` 时仅 PM2 主实例运行 cron，默认 `true` |
+| `SEARCH_RATE_LIMIT_WINDOW_MS` | 前台搜索单网段限流窗口，默认 `60000` 毫秒 |
+| `SEARCH_RATE_LIMIT_MAX` | 前台搜索单网段在短窗口内允许次数，默认 `6` |
+| `SEARCH_RATE_LIMIT_BAN_WINDOW_MS` | 前台搜索封禁统计窗口，默认 `3600000` 毫秒 |
+| `SEARCH_RATE_LIMIT_BAN_MAX` | 前台搜索单网段在封禁统计窗口内允许次数，默认 `100` |
+| `SEARCH_RATE_LIMIT_BAN_DURATION_MS` | 前台搜索触发封禁后的限制时长，默认 `21600000` 毫秒 |
 | `TEMPLATE_THEME` | 当前主题，默认 `stui` |
 | `URL_MODE` | 路由模式，`clean` 或 `pathinfo` |
 | `CACHE_ENABLE` | 是否启用页面缓存，`true` 时开启 |
+| `PAGE_CACHE_TTL_MS` | 页面缓存 TTL，默认 `3600000` 毫秒 |
+| `PAGE_CACHE_MAX_ENTRIES` | 页面缓存最大条目数，默认 `500` |
+| `RUNTIME_CACHE_MAX_ENTRIES` | 运行时缓存最大条目数，默认 `300` |
+| `CACHE_CLEANUP_INTERVAL_MS` | 缓存清理周期，默认 `60000` 毫秒 |
 | `FRONT_NAV_CACHE_TIME` | 前台导航缓存秒数 |
 | `FRONT_HOME_CACHE_TIME` | 首页区块缓存秒数 |
 | `ENABLE_CRON` | 是否启用定时任务轮询 |
@@ -507,6 +516,18 @@ node tools/template-converter.js /path/to/index.html /Users/quyue/www/maccms-nod
 
 当设置为 `true` 时，会启用页面缓存中间件。
 
+当前页面缓存只缓存白名单页面:
+
+- 首页
+- 分类页
+- 筛选页
+- 详情页
+
+搜索页和任何带 query string 的 URL 不会进入页面缓存。
+
+配置 `REDIS_URL` 后，页面缓存和运行时缓存都会切换到 Redis 共享存储。
+如果没有配置 Redis，则会回退到 Node 进程内存缓存。
+
 它的意义主要是:
 
 - 减少重复模板渲染
@@ -519,6 +540,13 @@ node tools/template-converter.js /path/to/index.html /Users/quyue/www/maccms-nod
 - 首页区块缓存 `FRONT_HOME_CACHE_TIME`
 
 如果你的站点访问量不大，可以先不开；如果首页、分类页、详情页访问频繁，建议开启。
+
+如果你使用 PM2 多进程:
+
+- 配置了 `REDIS_URL` 时，页面缓存和运行时缓存会在 worker 之间共享
+- 没配置 `REDIS_URL` 时，页面缓存和运行时缓存仍然是每个 worker 各自一份
+- 搜索限流在配置 `REDIS_URL` 后会切换为 Redis 共享计数
+- `CRON_PRIMARY_ONLY=true` 时，只有 `NODE_APP_INSTANCE=0` 的进程会启动定时任务
 
 ## 命中统计说明
 

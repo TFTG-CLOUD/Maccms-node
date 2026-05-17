@@ -80,8 +80,8 @@ async function getSeoSettings(SeoSettingModel, options = {}) {
   }, options);
 }
 
-function clearSeoSettingsCache() {
-  clearRuntimeCache('seo:');
+async function clearSeoSettingsCache() {
+  await clearRuntimeCache('seo:');
 }
 
 module.exports = {

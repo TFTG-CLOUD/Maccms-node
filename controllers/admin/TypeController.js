@@ -6,9 +6,11 @@ const { clearCache } = require('../../middleware/pageCache');
 const { clearRuntimeCache } = require('../../utils/runtimeCache');
 const { buildMixedIdCandidates, decodeUnicodeText, findOneByMixedId, splitFilterValues } = require('../../utils/front');
 
-function invalidateFrontCaches() {
-  clearRuntimeCache('front:');
-  clearCache();
+async function invalidateFrontCaches() {
+  await Promise.all([
+    clearRuntimeCache('front:'),
+    clearCache()
+  ]);
 }
 
 function normalizeExtendValue(value) {
@@ -185,7 +187,7 @@ class TypeController {
       _id: await allocateNextTypeId(),
       ...payload
     });
-    invalidateFrontCaches();
+    await invalidateFrontCaches();
     return respondSuccess(req, res, '/admin/type');
   }
   async edit(req, res) {
@@ -201,7 +203,7 @@ class TypeController {
     if (validationError) return respondValidationError(req, res, validationError);
 
     await Type.findOneAndUpdate({ _id: { $in: buildMixedIdCandidates(req.params.id) } }, payload);
-    invalidateFrontCaches();
+    await invalidateFrontCaches();
     return respondSuccess(req, res, '/admin/type');
   }
   async remove(req, res) {
@@ -209,7 +211,7 @@ class TypeController {
     if (validationError) return respondValidationError(req, res, validationError);
 
     await Type.findOneAndDelete({ _id: { $in: buildMixedIdCandidates(req.params.id) } });
-    invalidateFrontCaches();
+    await invalidateFrontCaches();
     res.json({ code: 1, msg: 'ok' });
   }
 }

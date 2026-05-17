@@ -1,3 +1,5 @@
+const { getSharedRateLimitStore, MemoryRateLimitStore } = require('../services/SharedRateLimitStore');
+
 function parseForwardedFor(value) {
   if (Array.isArray(value)) {
     return parseForwardedFor(value[0]);
@@ -37,29 +39,62 @@ function createRateLimiter(options = {}) {
     ? options.keyGenerator
     : (req) => getClientIp(req);
   const message = options.message || '请求过于频繁，请稍后再试';
+  const banMessage = options.banMessage || message;
   const statusCode = Number(options.statusCode || 429);
-  const store = new Map();
+  const banWindowMs = Math.max(0, Number(options.banWindowMs || 0));
+  const banMax = Math.max(0, Number(options.banMax || 0));
+  const banDurationMs = Math.max(0, Number(options.banDurationMs || 0));
+  const storePromise = options.store
+    ? Promise.resolve(options.store)
+    : getSharedRateLimitStore();
+  const shortStore = options.shortStore || new MemoryRateLimitStore('rate-limit-short');
+  const longStore = options.longStore || new MemoryRateLimitStore('rate-limit-long');
 
-  return function rateLimitMiddleware(req, res, next) {
-    const key = String(keyGenerator(req) || 'unknown');
-    const now = Date.now();
-    const record = store.get(key);
-
-    if (!record || record.expiresAt <= now) {
-      store.set(key, { count: 1, expiresAt: now + windowMs });
-      return next();
+  function sendBlocked(res, req, blockedMessage) {
+    if (req.accepts('json') && !req.accepts('html')) {
+      return res.status(statusCode).json({ code: 0, msg: blockedMessage });
     }
+    return res.status(statusCode).render('error', { message: blockedMessage, error: {} });
+  }
 
-    if (record.count >= max) {
-      if (req.accepts('json') && !req.accepts('html')) {
-        return res.status(statusCode).json({ code: 0, msg: message });
+  return async function rateLimitMiddleware(req, res, next) {
+    try {
+      const key = String(keyGenerator(req) || 'unknown');
+      const now = Date.now();
+      const sharedStore = await storePromise;
+      const shortCounterStore = sharedStore || shortStore;
+      const longCounterStore = sharedStore || longStore;
+      const shortWindowKey = `short:${key}`;
+      const longWindowKey = `long:${key}`;
+      const blockKey = `block:${key}`;
+
+      const blockedUntilRaw = await longCounterStore.get(blockKey);
+      const blockedUntil = Number(blockedUntilRaw || 0);
+      if (blockedUntil > now) {
+        return sendBlocked(res, req, banMessage);
       }
-      return res.status(statusCode).render('error', { message, error: {} });
-    }
+      if (blockedUntilRaw) {
+        await longCounterStore.delete(blockKey);
+      }
 
-    record.count += 1;
-    store.set(key, record);
-    return next();
+      if (banWindowMs > 0 && banMax > 0 && banDurationMs > 0) {
+        const longCount = await longCounterStore.increment(longWindowKey, banWindowMs);
+        if (longCount > banMax) {
+          const banUntil = now + banDurationMs;
+          await longCounterStore.set(blockKey, banUntil, banDurationMs);
+          return sendBlocked(res, req, banMessage);
+        }
+      }
+
+      const shortCount = await shortCounterStore.increment(shortWindowKey, windowMs);
+      if (shortCount > max) {
+        return sendBlocked(res, req, message);
+      }
+
+      return next();
+    } catch (error) {
+      return next(error);
+    }
   };
 }
 

@@ -26,6 +26,7 @@ class CollectTaskRunner {
     }
 
     const normalized = collectEngine.buildCollectRunOptions({ range, type: range });
+    const activeKey = String(source._id);
     const existingTask = await CollectTask.findOne({
       collectSource: sourceId,
       status: { $in: ['pending', 'running'] }
@@ -40,20 +41,39 @@ class CollectTaskRunner {
     }
 
     const queuePosition = this.queue.length + (this.running ? 1 : 0) + 1;
-    const task = await CollectTask.create({
-      collectSource: source._id,
-      sourceName: source.name,
-      range: normalized.type,
-      trigger,
-      status: 'pending',
-      queuePosition,
-      heartbeatAt: new Date(),
-      message: buildPendingTaskMessage(queuePosition, this.activeSourceName),
-      logs: [{
-        at: new Date(),
-        text: `任务已创建，等待执行 ${normalized.type}`
-      }]
-    });
+    let task;
+    try {
+      task = await CollectTask.create({
+        collectSource: source._id,
+        sourceName: source.name,
+        range: normalized.type,
+        trigger,
+        activeKey,
+        status: 'pending',
+        queuePosition,
+        heartbeatAt: new Date(),
+        message: buildPendingTaskMessage(queuePosition, this.activeSourceName),
+        logs: [{
+          at: new Date(),
+          text: `任务已创建，等待执行 ${normalized.type}`
+        }]
+      });
+    } catch (error) {
+      if (error?.code === 11000) {
+        const duplicatedTask = await CollectTask.findOne({
+          activeKey,
+          status: { $in: ['pending', 'running'] }
+        }).sort({ createdAt: -1 }).lean();
+        if (duplicatedTask) {
+          return {
+            ...duplicatedTask,
+            reusedExisting: true,
+            enqueueMessage: buildExistingTaskNotice(duplicatedTask)
+          };
+        }
+      }
+      throw error;
+    }
 
     this.queue.push(String(task._id));
     await this.refreshPendingMessages();
@@ -93,6 +113,7 @@ class CollectTaskRunner {
       { status: { $in: ['pending', 'running'] } },
       {
         $set: {
+          activeKey: null,
           status: 'failed',
           queuePosition: 0,
           heartbeatAt: now,
@@ -132,6 +153,7 @@ class CollectTaskRunner {
     this.queue = this.queue.filter((taskId) => !staleIds.includes(String(taskId)));
 
     await Promise.all(staleTasks.map((task) => this.patchTask(task._id, {
+      activeKey: null,
       status: 'failed',
       queuePosition: 0,
       heartbeatAt: now,
@@ -207,6 +229,7 @@ class CollectTaskRunner {
       });
 
       await this.patchTask(taskId, {
+        activeKey: null,
         status: 'success',
         heartbeatAt: new Date(),
         finishedAt: new Date(),
@@ -218,10 +241,13 @@ class CollectTaskRunner {
         result,
         message: `采集完成：新增 ${result.created || 0}，更新 ${result.updated || 0}`
       }, `采集完成：新增 ${result.created || 0}，更新 ${result.updated || 0}`);
-      clearRuntimeCache('front:');
-      clearCache();
+      await Promise.all([
+        clearRuntimeCache('front:'),
+        clearCache()
+      ]);
     } catch (error) {
       await this.patchTask(taskId, {
+        activeKey: null,
         status: 'failed',
         heartbeatAt: new Date(),
         finishedAt: new Date(),

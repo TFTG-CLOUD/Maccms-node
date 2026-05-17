@@ -1,60 +1,55 @@
-const runtimeCache = new Map();
+const { getSharedCacheStore } = require('../services/SharedCacheStore');
 
-function normalizeNow(nowProvider) {
-  return typeof nowProvider === 'function' ? nowProvider() : Date.now();
-}
+const RUNTIME_CACHE_MAX_ENTRIES = Math.max(1, Number(process.env.RUNTIME_CACHE_MAX_ENTRIES || 300));
+const CACHE_CLEANUP_INTERVAL_MS = Math.max(1000, Number(process.env.CACHE_CLEANUP_INTERVAL_MS || 60 * 1000));
+const pendingPromises = new Map();
+const runtimeCacheStorePromise = getSharedCacheStore('runtime-cache', {
+  maxEntries: RUNTIME_CACHE_MAX_ENTRIES,
+  cleanupIntervalMs: CACHE_CLEANUP_INTERVAL_MS
+});
 
 async function readThroughCache(key, ttlMs, loader, options = {}) {
-  const now = normalizeNow(options.now);
-  const cached = runtimeCache.get(key);
+  const cacheStore = options.store
+    ? options.store
+    : await runtimeCacheStorePromise;
+  const pending = pendingPromises.get(key);
+  if (pending) {
+    return pending;
+  }
 
-  if (cached) {
-    if (cached.kind === 'value' && cached.expiresAt > now) {
-      return cached.value;
-    }
-    if (cached.kind === 'promise') {
-      return cached.promise;
+  const cached = await cacheStore.get(key);
+  if (cached !== null && cached !== undefined) {
+    return cached;
+  }
+
+  const nextPending = Promise.resolve()
+    .then(loader)
+    .then((value) => cacheStore.set(key, value, ttlMs).then(() => value))
+    .finally(() => {
+      const current = pendingPromises.get(key);
+      if (current === nextPending) {
+        pendingPromises.delete(key);
+      }
+    });
+
+  pendingPromises.set(key, nextPending);
+  return nextPending;
+}
+
+async function clearRuntimeCache(prefix = '') {
+  for (const key of pendingPromises.keys()) {
+    if (!prefix || key.startsWith(prefix)) {
+      pendingPromises.delete(key);
     }
   }
 
-  const pending = Promise.resolve()
-    .then(loader)
-    .then((value) => {
-      runtimeCache.set(key, {
-        kind: 'value',
-        value,
-        expiresAt: normalizeNow(options.now) + ttlMs
-      });
-      return value;
-    })
-    .catch((error) => {
-      const current = runtimeCache.get(key);
-      if (current && current.kind === 'promise' && current.promise === pending) {
-        runtimeCache.delete(key);
-      }
-      throw error;
-    });
-
-  runtimeCache.set(key, {
-    kind: 'promise',
-    promise: pending,
-    expiresAt: now + ttlMs
-  });
-
-  return pending;
-}
-
-function clearRuntimeCache(prefix = '') {
+  const cacheStore = await runtimeCacheStorePromise;
   if (!prefix) {
-    runtimeCache.clear();
+    await cacheStore.clear();
     return;
   }
 
-  for (const key of runtimeCache.keys()) {
-    if (key.startsWith(prefix)) {
-      runtimeCache.delete(key);
-    }
-  }
+  await cacheStore.deleteByPrefix(prefix);
 }
 
 module.exports = {

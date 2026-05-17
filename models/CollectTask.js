@@ -5,6 +5,7 @@ const collectTaskSchema = new mongoose.Schema({
   sourceName:    { type: String, default: '' },
   range:         { type: String, default: 'today' },
   trigger:       { type: String, enum: ['manual', 'scheduler'], default: 'manual' },
+  activeKey:     { type: String, default: null },
   status:        { type: String, enum: ['pending', 'running', 'success', 'failed'], default: 'pending' },
   queuePosition: { type: Number, default: 0 },
   processed:     { type: Number, default: 0 },
@@ -26,5 +27,12 @@ const collectTaskSchema = new mongoose.Schema({
 
 collectTaskSchema.index({ collectSource: 1, createdAt: -1 });
 collectTaskSchema.index({ status: 1, createdAt: -1 });
+collectTaskSchema.index(
+  { activeKey: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { activeKey: { $type: 'string' } }
+  }
+);
 
 module.exports = mongoose.model('CollectTask', collectTaskSchema);

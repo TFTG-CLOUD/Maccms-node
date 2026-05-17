@@ -29,6 +29,16 @@ const ADMIN_SESSION_MAX_AGE_MS = Math.max(
   Number(process.env.ADMIN_SESSION_MAX_AGE_MS) || 30 * 24 * 60 * 60 * 1000
 );
 const TRUST_PROXY = process.env.TRUST_PROXY;
+const CRON_PRIMARY_ONLY = process.env.CRON_PRIMARY_ONLY !== 'false';
+
+function shouldStartCronScheduler() {
+  if (process.env.ENABLE_CRON === 'false') return false;
+  if (!CRON_PRIMARY_ONLY) return true;
+
+  const instanceId = process.env.NODE_APP_INSTANCE;
+  if (instanceId === undefined || instanceId === '') return true;
+  return String(instanceId) === '0';
+}
 
 if (TRUST_PROXY !== undefined && TRUST_PROXY !== '') {
   if (TRUST_PROXY === 'true') {
@@ -163,7 +173,7 @@ mongoose.connect(process.env.MONGODB_URI)
       console.log(`MacCMS Node running on http://localhost:${process.env.PORT}`);
     });
 
-    if (process.env.ENABLE_CRON !== 'false') {
+    if (shouldStartCronScheduler()) {
       nodeCron.schedule('*/30 * * * *', async () => {
         try {
           await scheduler.check();
@@ -172,6 +182,8 @@ mongoose.connect(process.env.MONGODB_URI)
         }
       });
       console.log('Cron scheduler started (every 30 min)');
+    } else {
+      console.log('Cron scheduler skipped for this process');
     }
   })
   .catch(err => {

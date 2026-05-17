@@ -8,8 +8,12 @@ const RssController = require('../controllers/front/RssController');
 const searchRateLimiter = createRateLimiter({
   windowMs: Number(process.env.SEARCH_RATE_LIMIT_WINDOW_MS) || 60 * 1000,
   max: Number(process.env.SEARCH_RATE_LIMIT_MAX) || 6,
+  banWindowMs: Number(process.env.SEARCH_RATE_LIMIT_BAN_WINDOW_MS) || 60 * 60 * 1000,
+  banMax: Number(process.env.SEARCH_RATE_LIMIT_BAN_MAX) || 100,
+  banDurationMs: Number(process.env.SEARCH_RATE_LIMIT_BAN_DURATION_MS) || 6 * 60 * 60 * 1000,
   keyGenerator: (req) => `vod-search:${getClientIpGroup(req)}`,
-  message: '搜索过于频繁，请稍后再试'
+  message: '搜索过于频繁，请稍后再试',
+  banMessage: '搜索访问异常频繁，已临时限制'
 });
 
 function applySearchRateLimit(req, res, next) {

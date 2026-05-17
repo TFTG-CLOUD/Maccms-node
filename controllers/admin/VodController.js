@@ -4,9 +4,11 @@ const { clearCache } = require('../../middleware/pageCache');
 const { clearRuntimeCache } = require('../../utils/runtimeCache');
 const { buildMixedIdCandidates, findOneByMixedId } = require('../../utils/front');
 
-function invalidateFrontCaches() {
-  clearRuntimeCache('front:');
-  clearCache();
+async function invalidateFrontCaches() {
+  await Promise.all([
+    clearRuntimeCache('front:'),
+    clearCache()
+  ]);
 }
 
 function escapeRegex(value) {
@@ -47,7 +49,7 @@ class VodController {
     delete req.body.vod_play_url_raw;
     delete req.body.vod_play_from_raw;
     await Vod.create(req.body);
-    invalidateFrontCaches();
+    await invalidateFrontCaches();
     res.redirect('/admin/vod');
   }
   async edit(req, res) {
@@ -61,18 +63,18 @@ class VodController {
     delete req.body.vod_play_url_raw;
     delete req.body.vod_play_from_raw;
     await Vod.findOneAndUpdate({ _id: { $in: buildMixedIdCandidates(req.params.id) } }, req.body);
-    invalidateFrontCaches();
+    await invalidateFrontCaches();
     res.redirect('/admin/vod');
   }
   async remove(req, res) {
     await Vod.findOneAndDelete({ _id: { $in: buildMixedIdCandidates(req.params.id) } });
-    invalidateFrontCaches();
+    await invalidateFrontCaches();
     res.json({ code: 1, msg: 'ok' });
   }
   async audit(req, res) {
     const { status } = req.body;
     await Vod.findOneAndUpdate({ _id: { $in: buildMixedIdCandidates(req.params.id) } }, { status: parseInt(status) });
-    invalidateFrontCaches();
+    await invalidateFrontCaches();
     res.json({ code: 1, msg: '审核完成' });
   }
 }

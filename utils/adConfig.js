@@ -73,8 +73,8 @@ async function getAdSettings(AdSettingModel, options = {}) {
   }, options);
 }
 
-function clearAdSettingsCache() {
-  clearRuntimeCache('ad:');
+async function clearAdSettingsCache() {
+  await clearRuntimeCache('ad:');
 }
 
 module.exports = {

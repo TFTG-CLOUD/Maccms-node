@@ -287,6 +287,8 @@ class VodController {
     const pagesize = LIST_PAGE_SIZE;
     const seoTemplates = res.locals.seoSettings || config.seo;
 
+    console.log(req.iq + 'Search:' + wd);
+
     if (!wd) {
       return res.render('stui/vod/search', {
         maccms: config,

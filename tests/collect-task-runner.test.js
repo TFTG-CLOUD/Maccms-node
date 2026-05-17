@@ -93,3 +93,90 @@ test('failStaleTasks marks timed-out running tasks as failed', async () => {
   assert.equal(updates[0].update.$set.status, 'failed');
   assert.equal(updates[0].update.$set.message, '任务心跳超时，已自动终止，请重新发起采集');
 });
+
+test('runTask does not trigger cache invalidation after successful collect', async () => {
+  const collectTaskPath = require.resolve('../services/CollectTaskRunner');
+  const collectEnginePath = require.resolve('../services/CollectEngine');
+  const pageCachePath = require.resolve('../middleware/pageCache');
+  const runtimeCachePath = require.resolve('../utils/runtimeCache');
+
+  const originalCollectTaskModule = require.cache[collectTaskPath];
+  const originalCollectEngineModule = require.cache[collectEnginePath];
+  const originalPageCacheModule = require.cache[pageCachePath];
+  const originalRuntimeCacheModule = require.cache[runtimeCachePath];
+  const originalFindById = CollectTask.findById;
+  const originalFindByIdAndUpdate = CollectTask.findByIdAndUpdate;
+
+  const invalidationCalls = [];
+  const markInvalidation = () => {
+    invalidationCalls.push(true);
+    return Promise.resolve();
+  };
+
+  delete require.cache[collectTaskPath];
+  require.cache[collectEnginePath] = {
+    id: collectEnginePath,
+    filename: collectEnginePath,
+    loaded: true,
+    exports: {
+      run: async () => ({
+        processed: 1,
+        created: 1,
+        updated: 0,
+        skipped: 0,
+        pages: 1,
+        changedVodIds: ['vod-1']
+      })
+    }
+  };
+  require.cache[pageCachePath] = {
+    id: pageCachePath,
+    filename: pageCachePath,
+    loaded: true,
+    exports: {
+      clearCache: markInvalidation,
+      clearVodPageCaches: markInvalidation
+    }
+  };
+  require.cache[runtimeCachePath] = {
+    id: runtimeCachePath,
+    filename: runtimeCachePath,
+    loaded: true,
+    exports: {
+      clearRuntimeCache: markInvalidation
+    }
+  };
+
+  CollectTask.findById = () => ({
+    lean: async () => ({
+      _id: 'task-success',
+      collectSource: 'source-1',
+      sourceName: 'demo',
+      range: '1day',
+      status: 'pending'
+    })
+  });
+  CollectTask.findByIdAndUpdate = async () => ({ acknowledged: true });
+
+  const isolatedRunner = require('../services/CollectTaskRunner');
+
+  try {
+    await isolatedRunner.runTask('task-success');
+    assert.equal(invalidationCalls.length, 0);
+  } finally {
+    CollectTask.findById = originalFindById;
+    CollectTask.findByIdAndUpdate = originalFindByIdAndUpdate;
+
+    if (originalCollectTaskModule) require.cache[collectTaskPath] = originalCollectTaskModule;
+    else delete require.cache[collectTaskPath];
+
+    if (originalCollectEngineModule) require.cache[collectEnginePath] = originalCollectEngineModule;
+    else delete require.cache[collectEnginePath];
+
+    if (originalPageCacheModule) require.cache[pageCachePath] = originalPageCacheModule;
+    else delete require.cache[pageCachePath];
+
+    if (originalRuntimeCacheModule) require.cache[runtimeCachePath] = originalRuntimeCacheModule;
+    else delete require.cache[runtimeCachePath];
+  }
+});

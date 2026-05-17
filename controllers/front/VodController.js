@@ -62,6 +62,15 @@ function markActiveNav(res, typeId) {
   });
 }
 
+function getClientIp(req) {
+  if (req.ip) return String(req.ip).trim();
+
+  const forwardedChain = parseForwardedFor(req.headers['x-forwarded-for']);
+  if (forwardedChain.length > 0) return forwardedChain[0];
+
+  return String(req.connection?.remoteAddress || req.socket?.remoteAddress || 'unknown').trim() || 'unknown';
+}
+
 class VodController {
   async detail(req, res) {
     const id = req.mac.params.id;
@@ -287,7 +296,7 @@ class VodController {
     const pagesize = LIST_PAGE_SIZE;
     const seoTemplates = res.locals.seoSettings || config.seo;
 
-    console.log(req.iq + 'Search:' + wd);
+    console.log(getClientIp(req) + 'Search:' + wd);
 
     if (!wd) {
       return res.render('stui/vod/search', {

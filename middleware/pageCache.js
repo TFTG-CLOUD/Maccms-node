@@ -1,6 +1,8 @@
 const { getSharedCacheStore } = require('../services/SharedCacheStore');
 
 const PAGE_CACHE_TTL_MS = Math.max(1000, Number(process.env.PAGE_CACHE_TTL_MS || 60 * 60 * 1000));
+const DETAIL_PAGE_CACHE_TTL_MS = Math.max(1000, Number(process.env.DETAIL_PAGE_CACHE_TTL_MS || 60 * 1000));
+const PLAY_PAGE_CACHE_TTL_MS = Math.max(1000, Number(process.env.PLAY_PAGE_CACHE_TTL_MS || 60 * 1000));
 const PAGE_CACHE_MAX_ENTRIES = Math.max(1, Number(process.env.PAGE_CACHE_MAX_ENTRIES || 500));
 const CACHE_CLEANUP_INTERVAL_MS = Math.max(1000, Number(process.env.CACHE_CLEANUP_INTERVAL_MS || 60 * 1000));
 const cacheStorePromise = getSharedCacheStore('page-cache', {
@@ -15,8 +17,42 @@ function isPageCacheWhitelistedPath(path) {
     /^\/index\.php\/?$/.test(path) ||
     /^\/(?:index\.php\/)?index\/index\/?$/.test(path) ||
     /^\/(?:index\.php\/)?vod\/(?:type|show)\/id\/[^/.?#]+(?:\/page\/\d+)?\.html$/.test(path) ||
-    /^\/(?:index\.php\/)?vod\/detail\/id\/[^/.?#]+\.html$/.test(path)
+    /^\/(?:index\.php\/)?vod\/detail\/id\/[^/.?#]+\.html$/.test(path) ||
+    /^\/(?:index\.php\/)?vod\/play\/id\/[^/.?#]+\/sid\/\d+\/nid\/\d+\.html$/.test(path)
   );
+}
+
+function getPageCacheTtlMs(path) {
+  if (/^\/(?:index\.php\/)?vod\/detail\/id\/[^/.?#]+\.html$/.test(path)) {
+    return DETAIL_PAGE_CACHE_TTL_MS;
+  }
+  if (/^\/(?:index\.php\/)?vod\/play\/id\/[^/.?#]+\/sid\/\d+\/nid\/\d+\.html$/.test(path)) {
+    return PLAY_PAGE_CACHE_TTL_MS;
+  }
+  return PAGE_CACHE_TTL_MS;
+}
+
+function buildVodPageCachePrefixes(vodId) {
+  const ids = Array.isArray(vodId) ? vodId : [vodId];
+  const prefixes = [];
+  const seen = new Set();
+
+  ids.forEach((item) => {
+    const id = String(item || '').trim();
+    if (!id) return;
+    [
+      `/vod/detail/id/${id}.html`,
+      `/index.php/vod/detail/id/${id}.html`,
+      `/vod/play/id/${id}/`,
+      `/index.php/vod/play/id/${id}/`
+    ].forEach((prefix) => {
+      if (seen.has(prefix)) return;
+      seen.add(prefix);
+      prefixes.push(prefix);
+    });
+  });
+
+  return prefixes;
 }
 
 function shouldBypassPageCache(req) {
@@ -44,7 +80,7 @@ async function pageCacheMiddleware(req, res, next) {
     const originalSend = res.send.bind(res);
     res.send = function(body) {
       if (res.statusCode === 200 && typeof body === 'string') {
-        cacheStore.set(key, body, PAGE_CACHE_TTL_MS).catch((error) => {
+        cacheStore.set(key, body, getPageCacheTtlMs(req.path || key)).catch((error) => {
           console.error('Page cache set error:', error.message);
         });
       }
@@ -57,9 +93,26 @@ async function pageCacheMiddleware(req, res, next) {
   }
 }
 
-async function clearCache() {
+async function clearCache(prefix = '') {
   const cacheStore = await cacheStorePromise;
-  await cacheStore.clear();
+  if (!prefix) {
+    await cacheStore.clear();
+    return;
+  }
+  await cacheStore.deleteByPrefix(prefix);
 }
 
-module.exports = { pageCacheMiddleware, clearCache, shouldBypassPageCache };
+async function clearVodPageCaches(vodId) {
+  const prefixes = buildVodPageCachePrefixes(vodId);
+  if (prefixes.length === 0) return;
+  await Promise.all(prefixes.map((prefix) => clearCache(prefix)));
+}
+
+module.exports = {
+  buildVodPageCachePrefixes,
+  clearCache,
+  clearVodPageCaches,
+  getPageCacheTtlMs,
+  pageCacheMiddleware,
+  shouldBypassPageCache
+};

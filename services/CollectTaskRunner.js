@@ -1,7 +1,7 @@
 const CollectSource = require('../models/CollectSource');
 const CollectTask = require('../models/CollectTask');
 const collectEngine = require('./CollectEngine');
-const { clearCache } = require('../middleware/pageCache');
+const { clearCache, clearVodPageCaches } = require('../middleware/pageCache');
 const { clearRuntimeCache } = require('../utils/runtimeCache');
 const {
   DEFAULT_TASK_STALE_MS,
@@ -241,10 +241,12 @@ class CollectTaskRunner {
         result,
         message: `采集完成：新增 ${result.created || 0}，更新 ${result.updated || 0}`
       }, `采集完成：新增 ${result.created || 0}，更新 ${result.updated || 0}`);
+      const changedVodIds = Array.isArray(result.changedVodIds) ? result.changedVodIds : [];
       await Promise.all([
         clearRuntimeCache('count:'),
+        clearRuntimeCache('query:'),
         clearRuntimeCache('front:'),
-        clearCache()
+        changedVodIds.length > 100 ? clearCache() : clearVodPageCaches(changedVodIds)
       ]);
     } catch (error) {
       await this.patchTask(taskId, {

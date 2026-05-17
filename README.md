@@ -129,6 +129,8 @@ TEMPLATE_THEME=stui
 URL_MODE=clean
 
 CACHE_ENABLE=true
+DETAIL_PAGE_CACHE_TTL_MS=60000
+PLAY_PAGE_CACHE_TTL_MS=60000
 FRONT_NAV_CACHE_TIME=600
 FRONT_HOME_CACHE_TIME=120
 ENABLE_HTTP_COMPRESSION=false
@@ -222,6 +224,8 @@ http://localhost:3000/admin/login
 | `ENABLE_HTTP_COMPRESSION` | 是否在 Node 进程内启用 `compression()`，默认 `false`，建议交给 Caddy/Nginx |
 | `FRONT_ACCESS_LOG` | 是否开启前台路由访问日志，默认 `true`，输出 IP、路径、状态码和响应时延 |
 | `PAGE_CACHE_TTL_MS` | 页面缓存 TTL，默认 `3600000` 毫秒 |
+| `DETAIL_PAGE_CACHE_TTL_MS` | `vod/detail` 页面缓存 TTL，默认 `60000` 毫秒 |
+| `PLAY_PAGE_CACHE_TTL_MS` | `vod/play` 页面缓存 TTL，默认 `60000` 毫秒 |
 | `PAGE_CACHE_MAX_ENTRIES` | 页面缓存最大条目数，默认 `500` |
 | `RUNTIME_CACHE_MAX_ENTRIES` | 运行时缓存最大条目数，默认 `300` |
 | `CACHE_CLEANUP_INTERVAL_MS` | 缓存清理周期，默认 `60000` 毫秒 |
@@ -594,8 +598,15 @@ node tools/template-converter.js /path/to/index.html /Users/quyue/www/maccms-nod
 - 分类页
 - 筛选页
 - 详情页
+- 播放页
 
 搜索页和任何带 query string 的 URL 不会进入页面缓存。
+
+其中:
+
+- `PAGE_CACHE_TTL_MS` 用于首页、分类页、筛选页
+- `DETAIL_PAGE_CACHE_TTL_MS` 用于 `vod/detail`
+- `PLAY_PAGE_CACHE_TTL_MS` 用于 `vod/play`
 
 配置 `REDIS_URL` 后，页面缓存和运行时缓存都会切换到 Redis 共享存储。
 如果没有配置 Redis，则会回退到 Node 进程内存缓存。
@@ -612,7 +623,7 @@ ENABLE_HTTP_COMPRESSION=false
 
 - 减少重复模板渲染
 - 减少热点页面的数据库查询压力
-- 对热门列表页、首页、详情页更友好
+- 对热门列表页、首页、详情页、播放页更友好
 
 另外，系统还内置了两类轻量缓存:
 

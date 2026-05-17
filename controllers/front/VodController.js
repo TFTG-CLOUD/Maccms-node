@@ -79,14 +79,6 @@ class VodController {
     const vod = await findOneByMixedId(Vod, id);
     if (!vod || vod.status !== 1) return res.status(404).render('error', { message: '影片不存在或未审核' });
 
-    vod.hits = (vod.hits || 0) + 1;
-    vod.hitsDay = (vod.hitsDay || 0) + 1;
-    vod.hitsWeek = (vod.hitsWeek || 0) + 1;
-    vod.hitsMonth = (vod.hitsMonth || 0) + 1;
-    Vod.updateOne({ _id: vod._id }, {
-      $inc: { hits: 1, hitsDay: 1, hitsWeek: 1, hitsMonth: 1 }
-    }).exec();
-
     const relatedVods = await Vod.find({
       type: vod.type,
       _id: { $ne: vod._id },

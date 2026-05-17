@@ -497,6 +497,7 @@ class CollectEngine {
     let updatedCount = 0;
     let skippedCount = 0;
     let processedCount = 0;
+    const changedVodIds = new Set();
 
     if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
@@ -696,10 +697,12 @@ class CollectEngine {
           }
           await Vod.findByIdAndUpdate(existingVod._id, updateDoc);
           updatedCount++;
+          changedVodIds.add(String(existingVod._id));
           action = 'updated';
         } else {
-          await Vod.create(ensureVodDocumentId(entry.vodData));
+          const createdVod = await Vod.create(ensureVodDocumentId(entry.vodData));
           createdCount++;
+          changedVodIds.add(String(createdVod._id));
         }
 
         processedCount++;
@@ -743,7 +746,8 @@ class CollectEngine {
       created: createdCount,
       updated: updatedCount,
       skipped: skippedCount,
-      pages: page - 1
+      pages: page - 1,
+      changedVodIds: [...changedVodIds]
     };
   }
 

@@ -1,7 +1,7 @@
 const Vod = require('../../models/Vod');
 const Type = require('../../models/Type');
 const FilterAliasSetting = require('../../models/FilterAliasSetting');
-const { clearCache } = require('../../middleware/pageCache');
+const { clearVodPageCaches } = require('../../middleware/pageCache');
 const { clearRuntimeCache } = require('../../utils/runtimeCache');
 const { buildMixedIdCandidates, findOneByMixedId } = require('../../utils/front');
 const {
@@ -11,11 +11,12 @@ const {
   getFilterAliasSettings
 } = require('../../utils/filterAliasConfig');
 
-async function invalidateFrontCaches() {
+async function invalidateFrontCaches(vodIds = []) {
   await Promise.all([
     clearRuntimeCache('count:'),
+    clearRuntimeCache('query:'),
     clearRuntimeCache('front:'),
-    clearCache()
+    clearVodPageCaches(vodIds)
   ]);
 }
 
@@ -109,8 +110,8 @@ class VodController {
   }
   async create(req, res) {
     const payload = await buildVodPayload(req.body);
-    await Vod.create(payload);
-    await invalidateFrontCaches();
+    const vod = await Vod.create(payload);
+    await invalidateFrontCaches([vod._id]);
     res.redirect('/admin/vod');
   }
   async edit(req, res) {
@@ -121,19 +122,19 @@ class VodController {
   }
   async update(req, res) {
     const payload = await buildVodPayload(req.body);
-    await Vod.findOneAndUpdate({ _id: { $in: buildMixedIdCandidates(req.params.id) } }, payload);
-    await invalidateFrontCaches();
+    const updatedVod = await Vod.findOneAndUpdate({ _id: { $in: buildMixedIdCandidates(req.params.id) } }, payload, { new: true });
+    await invalidateFrontCaches(updatedVod ? [updatedVod._id] : [req.params.id]);
     res.redirect('/admin/vod');
   }
   async remove(req, res) {
-    await Vod.findOneAndDelete({ _id: { $in: buildMixedIdCandidates(req.params.id) } });
-    await invalidateFrontCaches();
+    const removedVod = await Vod.findOneAndDelete({ _id: { $in: buildMixedIdCandidates(req.params.id) } });
+    await invalidateFrontCaches(removedVod ? [removedVod._id] : [req.params.id]);
     res.json({ code: 1, msg: 'ok' });
   }
   async audit(req, res) {
     const { status } = req.body;
-    await Vod.findOneAndUpdate({ _id: { $in: buildMixedIdCandidates(req.params.id) } }, { status: parseInt(status) });
-    await invalidateFrontCaches();
+    const auditedVod = await Vod.findOneAndUpdate({ _id: { $in: buildMixedIdCandidates(req.params.id) } }, { status: parseInt(status) }, { new: true });
+    await invalidateFrontCaches(auditedVod ? [auditedVod._id] : [req.params.id]);
     res.json({ code: 1, msg: '审核完成' });
   }
 }

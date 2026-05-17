@@ -10,6 +10,7 @@ const scheduler = require('./services/Scheduler');
 
 const config = require('./config');
 const routes = require('./routes');
+const { frontCounterMiddleware } = require('./middleware/frontCounters');
 const { pageCacheMiddleware } = require('./middleware/pageCache');
 const { macUrl, stripIndexPhp } = require('./utils/urlHelper');
 const collectTaskRunner = require('./services/CollectTaskRunner');
@@ -64,6 +65,7 @@ app.use('/upload', express.static(path.join(__dirname, 'public', 'upload'), {
 app.use('/js', express.static(path.join(__dirname, 'public', 'js'), { maxAge: STATIC_CACHE_MAX_AGE }));
 app.use('/css', express.static(path.join(__dirname, 'public', 'css'), { maxAge: STATIC_CACHE_MAX_AGE }));
 app.use('/images', express.static(path.join(__dirname, 'public', 'images'), { maxAge: STATIC_CACHE_MAX_AGE }));
+app.use(frontCounterMiddleware);
 
 if (config.pageCacheStatus) {
   app.use(pageCacheMiddleware);

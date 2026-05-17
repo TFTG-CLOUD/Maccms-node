@@ -210,7 +210,7 @@ block content
               .play-btn.clearfix
                 a.btn.btn-primary(href=macUrl("/vod/play/id/" + vod._id + "/sid/1/nid/1.html")) 立即播放
 
-  if vod.playUrls && vod.playUrls.length
+  if playlistSections && playlistSections.length
     .stui-pannel.stui-pannel-bg.clearfix
       .stui-pannel-box
         .stui-pannel_hd
@@ -220,19 +220,19 @@ block content
               | 播放地址
         .stui-pannel_bd
           .playlist-stack
-            each server, sIdx in vod.playUrls
-              details.playlist-accordion(open=sIdx === 0 id="playlist_" + (sIdx + 1))
+            each section in playlistSections
+              details.playlist-accordion(open=section.isOpen id=section.accordionId)
                 summary.playlist-source__head
                   .playlist-source__meta
                     span.playlist-source__arrow
-                    span.playlist-source__title= '播放线路 ' + (sIdx + 1)
-                    if server.server
-                      span.playlist-source__raw= server.server
-                  span.playlist-source__count= server.episodes.length + ' 个地址'
+                    span.playlist-source__title= section.title
+                    if section.rawName
+                      span.playlist-source__raw= section.rawName
+                  span.playlist-source__count= section.countText
                 .playlist-body
                   .playlist-items
-                    each ep, epIdx in server.episodes
-                      a.playlist-chip(class=(param.nid == ep.nid ? 'playlist-chip--active' : '') href=macUrl("/vod/play/id/" + vod._id + "/sid/" + (sIdx + 1) + "/nid/" + (ep.nid || (epIdx + 1)) + ".html"))= ep.name || ('第' + (epIdx + 1) + '集')
+                    each episodeItem in section.episodes
+                      a.playlist-chip(class=(episodeItem.isActive ? 'playlist-chip--active' : '') href=episodeItem.href)= episodeItem.label
 
   .stui-pannel.stui-pannel-bg.clearfix
     .stui-pannel-box

@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const config = require('../config');
 const { normalizeKeywordList } = require('./filterAliasConfig');
+const { macUrl } = require('./urlHelper');
 
 const HOME_TITLE_ALIASES = {
   连续剧: '电视剧'
@@ -348,6 +349,38 @@ function buildPlayerSource(url) {
   };
 }
 
+function buildPlaylistSections(vod = {}, options = {}) {
+  const vodId = idKey(vod?._id);
+  const activeSid = Math.max(1, Number(options.activeSid || 1));
+  const activeNid = Math.max(1, Number(options.activeNid || 1));
+  const playUrls = Array.isArray(vod?.playUrls) ? vod.playUrls : [];
+
+  return playUrls.map((server, serverIndex) => {
+    const index = serverIndex + 1;
+    const episodes = Array.isArray(server?.episodes) ? server.episodes : [];
+    const isActiveSource = index === activeSid;
+
+    return {
+      accordionId: `playlist_${index}`,
+      index,
+      title: `播放线路 ${index}`,
+      rawName: String(server?.server || '').trim(),
+      countText: `${episodes.length} 个地址`,
+      isOpen: isActiveSource,
+      isActiveSource,
+      episodes: episodes.map((episode, episodeIndex) => {
+        const nid = Number(episode?.nid || (episodeIndex + 1));
+        return {
+          nid,
+          label: String(episode?.name || '').trim() || `第${episodeIndex + 1}集`,
+          href: macUrl(`/vod/play/id/${vodId}/sid/${index}/nid/${nid}.html`),
+          isActive: isActiveSource && nid === activeNid
+        };
+      })
+    };
+  });
+}
+
 function buildMixedIdCandidates(id) {
   const raw = idKey(id);
   const candidates = [];
@@ -384,6 +417,7 @@ async function findOneByMixedId(Model, id, populate = '') {
 }
 
 module.exports = {
+  buildPlaylistSections,
   buildMixedIdCandidates,
   buildPlayerSource,
   buildVodRatingMeta,

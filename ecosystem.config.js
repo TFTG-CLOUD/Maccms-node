@@ -13,6 +13,11 @@ module.exports = {
       merge_logs: true,
       time: true,
       env: {
+        NODE_ENV: 'production',
+        ENABLE_CRON: 'true',
+        CRON_PRIMARY_ONLY: 'true'
+      },
+      env_development: {
         NODE_ENV: 'development',
         ENABLE_CRON: 'true',
         CRON_PRIMARY_ONLY: 'true'

@@ -8,6 +8,7 @@ const {
   buildVodShowBasePath,
   buildVodShowPath,
   buildVodRatingMeta,
+  buildPlaylistSections,
   findOneByMixedId,
   buildPlayerSource,
   normalizeMediaEntity,
@@ -87,6 +88,7 @@ class VodController {
 
     const seoTemplates = res.locals.seoSettings || config.seo;
     const normalizedVod = buildVodViewModel(vod);
+    const playlistSections = buildPlaylistSections(vod, { activeSid: 1, activeNid: Number(req.mac.params.nid || 1) || 1 });
     markActiveNav(res, vod.type);
     const seo = {
       title: seoReplace(seoTemplates.vod.title, vod, config),
@@ -98,6 +100,7 @@ class VodController {
       maccms: config,
       obj: normalizedVod,
       vod: normalizedVod,
+      playlistSections,
       ratingMeta: buildVodRatingMeta(vod),
       param: { ...req.mac.params, sid: 1, nid: 1 },
       relatedVods: normalizeMediaList(relatedVods),
@@ -247,6 +250,7 @@ class VodController {
     const prevEpisode = episodeIndex > 0 ? currentEpisodes[episodeIndex - 1] : null;
     const nextEpisode = episodeIndex < currentEpisodes.length - 1 ? currentEpisodes[episodeIndex + 1] : null;
     const playerSource = buildPlayerSource(episode.url);
+    const playlistSections = buildPlaylistSections(vod, { activeSid: serverIndex + 1, activeNid: episode.nid || (episodeIndex + 1) });
 
     const relatedVods = await Vod.find({
       type: vod.type,
@@ -263,6 +267,7 @@ class VodController {
       param: req.mac.params,
       episode,
       playServer,
+      playlistSections,
       playerSource,
       playerInfo: {
         linkPrev: prevEpisode ? macUrl(`/vod/play/id/${vod._id}/sid/${serverIndex + 1}/nid/${prevEpisode.nid}.html`) : '',

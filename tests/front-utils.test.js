@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const config = require('../config');
 
 const {
+  buildPlaylistSections,
   buildVodShowFilter,
   buildMixedIdCandidates,
   buildPlayerSource,
@@ -192,6 +193,50 @@ test('buildPlayerSource detects hls, native video and iframe fallbacks', () => {
       useVideo: false
     }
   );
+});
+
+test('buildPlaylistSections precomputes source and episode presentation state', () => {
+  const sections = buildPlaylistSections({
+    _id: 321,
+    playUrls: [
+      {
+        server: '线路A',
+        episodes: [{ nid: 1, name: '第1集' }, { nid: 2, name: '' }]
+      },
+      {
+        server: '',
+        episodes: [{ nid: 3, name: '终章' }]
+      }
+    ]
+  }, { activeSid: 1, activeNid: 2 });
+
+  assert.equal(sections.length, 2);
+  assert.deepEqual(sections[0], {
+    accordionId: 'playlist_1',
+    index: 1,
+    title: '播放线路 1',
+    rawName: '线路A',
+    countText: '2 个地址',
+    isOpen: true,
+    isActiveSource: true,
+    episodes: [
+      {
+        nid: 1,
+        label: '第1集',
+        href: '/vod/play/id/321/sid/1/nid/1.html',
+        isActive: false
+      },
+      {
+        nid: 2,
+        label: '第2集',
+        href: '/vod/play/id/321/sid/1/nid/2.html',
+        isActive: true
+      }
+    ]
+  });
+  assert.equal(sections[1].isOpen, false);
+  assert.equal(sections[1].rawName, '');
+  assert.equal(sections[1].episodes[0].href, '/vod/play/id/321/sid/2/nid/3.html');
 });
 
 test('buildVodRatingMeta formats douban and site scores for detail views', () => {

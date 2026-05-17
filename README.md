@@ -220,6 +220,7 @@ http://localhost:3000/admin/login
 | `URL_MODE` | 路由模式，`clean` 或 `pathinfo` |
 | `CACHE_ENABLE` | 是否启用页面缓存，`true` 时开启 |
 | `ENABLE_HTTP_COMPRESSION` | 是否在 Node 进程内启用 `compression()`，默认 `false`，建议交给 Caddy/Nginx |
+| `FRONT_ACCESS_LOG` | 是否开启前台路由访问日志，默认 `true`，输出 IP、路径、状态码和响应时延 |
 | `PAGE_CACHE_TTL_MS` | 页面缓存 TTL，默认 `3600000` 毫秒 |
 | `PAGE_CACHE_MAX_ENTRIES` | 页面缓存最大条目数，默认 `500` |
 | `RUNTIME_CACHE_MAX_ENTRIES` | 运行时缓存最大条目数，默认 `300` |

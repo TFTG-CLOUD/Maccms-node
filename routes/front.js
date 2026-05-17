@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const macRouter = require('../middleware/macRouter');
+const { frontAccessLogMiddleware } = require('../middleware/frontAccessLog');
 const { frontContextMiddleware } = require('../middleware/frontContext');
 const { createRateLimiter, getClientIpGroup } = require('../middleware/rateLimit');
 const RssController = require('../controllers/front/RssController');
@@ -86,6 +87,7 @@ function dispatch(req, res) {
 }
 
 const rssController = new RssController();
+router.use(frontAccessLogMiddleware);
 router.get('/robots.txt', (req, res) => rssController.robots(req, res));
 router.get('/rss/index.xml', (req, res) => rssController.index(req, res));
 router.get('/index.php/rss/index.xml', (req, res) => rssController.index(req, res));

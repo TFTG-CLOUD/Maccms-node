@@ -242,6 +242,7 @@ class CollectTaskRunner {
         message: `采集完成：新增 ${result.created || 0}，更新 ${result.updated || 0}`
       }, `采集完成：新增 ${result.created || 0}，更新 ${result.updated || 0}`);
       await Promise.all([
+        clearRuntimeCache('count:'),
         clearRuntimeCache('front:'),
         clearCache()
       ]);

@@ -27,8 +27,15 @@ const vodSchema = new mongoose.Schema({
   downUrls:     [playServerSchema],
   year:         { type: mongoose.Schema.Types.Mixed, default: '' },
   area:         { type: String, default: '' },
+  areaTokens:   [{ type: String }],
   lang:         { type: String, default: '' },
+  langTokens:   [{ type: String }],
   class:        { type: String, default: '' },
+  classTokens:  [{ type: String }],
+  actorTokens:  [{ type: String }],
+  directorTokens:[{ type: String }],
+  writerTokens: [{ type: String }],
+  filterTokens: [{ type: String }],
   tags:         [{ type: String }],
   total:        { type: Number, default: 0 },
   serial:       { type: String, default: '' },
@@ -72,6 +79,9 @@ vodSchema.index({ type: 1, status: 1, hitsWeek: -1 });
 vodSchema.index({ type: 1, status: 1, updatedAt: -1 });
 vodSchema.index({ type: 1, status: 1, hits: -1 });
 vodSchema.index({ type: 1, status: 1, score: -1 });
+vodSchema.index({ type: 1, status: 1, filterTokens: 1, updatedAt: -1 });
+vodSchema.index({ type: 1, status: 1, filterTokens: 1, hits: -1 });
+vodSchema.index({ type: 1, status: 1, filterTokens: 1, score: -1 });
 vodSchema.index({ name: 1 });
 vodSchema.index({ area: 1, year: 1 });
 vodSchema.index({ letter: 1 });

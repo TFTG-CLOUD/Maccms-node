@@ -8,6 +8,7 @@ const CollectController = require('../controllers/admin/CollectController');
 const TimmingController = require('../controllers/admin/TimmingController');
 const SeoController = require('../controllers/admin/SeoController');
 const AdController = require('../controllers/admin/AdController');
+const FilterAliasController = require('../controllers/admin/FilterAliasController');
 const Admin = require('../models/Admin');
 const bcrypt = require('bcryptjs');
 const { createRateLimiter, getClientIp } = require('../middleware/rateLimit');
@@ -57,6 +58,7 @@ const collectCtrl = new CollectController();
 const timmingCtrl = new TimmingController();
 const seoCtrl = new SeoController();
 const adCtrl = new AdController();
+const filterAliasCtrl = new FilterAliasController();
 
 router.get('/', (req, res) => indexCtrl.index(req, res));
 
@@ -91,6 +93,8 @@ router.post('/timming/:id/run', (req, res) => timmingCtrl.run(req, res));
 
 router.get('/seo', (req, res) => seoCtrl.index(req, res));
 router.post('/seo', (req, res) => seoCtrl.update(req, res));
+router.get('/filter-alias', (req, res) => filterAliasCtrl.index(req, res));
+router.post('/filter-alias', (req, res) => filterAliasCtrl.update(req, res));
 router.get('/ad', (req, res) => adCtrl.index(req, res));
 router.post('/ad', (req, res) => adCtrl.update(req, res));
 

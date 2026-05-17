@@ -64,40 +64,29 @@ test('buildVodShowFilter supports legacy year strings, area aliases and digit le
   }, {
     currentType: { _id: 39 },
     filterTypeIds: [39, 40]
+  }, {
+    area: new Map([
+      ['大陆', '大陆'],
+      ['中国大陆', '大陆'],
+      ['内地', '大陆']
+    ]),
+    class: new Map([
+      ['动作', '动作']
+    ]),
+    lang: new Map([
+      ['国语', '国语']
+    ])
   });
 
   assert.equal(filter.status, 1);
   assert.deepEqual(filter.type, { $in: [39, 40] });
-  assert.equal(filter.$and.length, 5);
-
-  const yearCondition = filter.$and.find((item) => item.$or?.some((entry) => Object.prototype.hasOwnProperty.call(entry, 'year')));
-  assert.deepEqual(yearCondition, {
-    $or: [
-      { year: '2025' },
-      { year: 2025 }
-    ]
+  assert.deepEqual(filter.filterTokens, {
+    $all: ['area:大陆', 'year:2025', 'class:动作', 'lang:国语']
   });
-
-  const areaCondition = filter.$and.find((item) => item.$or?.some((entry) => Object.prototype.hasOwnProperty.call(entry, 'area')));
-  const exactAreaValues = areaCondition.$or[0].area.$in;
-  const areaRegex = areaCondition.$or[1].area;
-  assert.deepEqual(exactAreaValues, ['大陆', '中国大陆']);
-  assert.equal(areaRegex.test('中国大陆,中国香港'), true);
-  assert.equal(areaRegex.test('美国'), false);
 
   const digitLetterCondition = filter.$and.find((item) => item.letter instanceof RegExp);
   assert.equal(digitLetterCondition.letter.test('7'), true);
   assert.equal(digitLetterCondition.letter.test('A'), false);
-
-  const classCondition = filter.$and.find((item) => item.$or?.some((entry) => Object.prototype.hasOwnProperty.call(entry, 'class')));
-  const classRegex = classCondition.$or[1].class;
-  assert.equal(classRegex.test('动作,喜剧'), true);
-  assert.equal(classRegex.test('动作片在线播放'), false);
-
-  const langCondition = filter.$and.find((item) => item.$or?.some((entry) => Object.prototype.hasOwnProperty.call(entry, 'lang')));
-  const langRegex = langCondition.$or[1].lang;
-  assert.equal(langRegex.test('国语,中文字幕'), true);
-  assert.equal(langRegex.test('英语'), false);
 });
 
 test('getVodLetterOptions keeps 0-9 as one aggregated option', () => {

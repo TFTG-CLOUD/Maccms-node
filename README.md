@@ -2,12 +2,15 @@
 
 基于 Node.js + Express + MongoDB + Pug 的 MACCMS 风格影视站实现，核心应用位于 `node-back/`。
 
-这个项目的重点不是“重新做一个 CMS”，而是尽量让现有 MACCMS 站点可以低成本迁移过来:
+这个项目的重点不是“重新做一个 CMS”，而是尽量让现有 MACCMS 站点可以低成本迁移过来，并且提供极致的性能体验:
 
 - 数据尽量无缝迁移
 - 路由尽量保持和 MACCMS 一致
 - 模板尽量复用，支持从 MACCMS 模板批量迁移到 Pug
 - 采集、分类、详情、播放、后台管理等常用能力继续可用
+- 基础性能优化，支持页面缓存、首页导航、首页区块、筛选计数等共享缓存
+- 页面打开速度压制在 100ms 内
+
 
 如果你已经有一个在跑的 MACCMS 站，这个项目最适合的使用方式就是: 迁移旧数据、迁移旧模板、保留原有访问路径习惯，然后逐步把前后端维护切到 Node 版本。
 
@@ -37,7 +40,8 @@
   - 图片支持批量并发下载，失败自动重试，仍失败则回退默认海报
 - 基础性能优化
   - 支持页面缓存开关
-  - 首页导航和首页区块带内存缓存
+  - 首页导航、首页区块、筛选计数支持共享缓存
+  - 页面缓存只缓存首页、分类页、筛选页、详情页，不缓存搜索页和带 query 的 URL
   - 静态资源开启压缩和缓存头
 - 榜单统计
   - 支持总人气、日榜、周榜、月榜
@@ -148,6 +152,30 @@ node scripts/seed.js
 node scripts/seed.js --with-types
 ```
 
+初始化管理员账号并写入默认筛选别名配置:
+
+```bash
+node scripts/seed.js --with-filter-alias
+```
+
+如果你希望一次性补管理员、内置分类和默认筛选别名:
+
+```bash
+node scripts/seed.js --with-types --with-filter-alias
+```
+
+回填影片筛选 token 和规范分类筛选项:
+
+```bash
+node scripts/migrate-filter-tokens.js
+```
+
+只看会改多少数据，不实际写入:
+
+```bash
+node scripts/migrate-filter-tokens.js --dry-run
+```
+
 开发模式启动:
 
 ```bash
@@ -189,11 +217,40 @@ http://localhost:3000/admin/login
 | `PAGE_CACHE_MAX_ENTRIES` | 页面缓存最大条目数，默认 `500` |
 | `RUNTIME_CACHE_MAX_ENTRIES` | 运行时缓存最大条目数，默认 `300` |
 | `CACHE_CLEANUP_INTERVAL_MS` | 缓存清理周期，默认 `60000` 毫秒 |
+| `VOD_COUNT_CACHE_TTL_MS` | 分类页和筛选页计数缓存毫秒数，默认 `30000` |
+| `VOD_SHOW_LIST_CACHE_TTL_MS` | `vod/show` 列表结果缓存毫秒数，默认 `15000` |
 | `FRONT_NAV_CACHE_TIME` | 前台导航缓存秒数 |
 | `FRONT_HOME_CACHE_TIME` | 首页区块缓存秒数 |
 | `ENABLE_CRON` | 是否启用定时任务轮询 |
 | `QR_TARGET_URL` | 二维码目标地址 |
 | `ADMIN_INIT_*` | 初始化管理员账号信息 |
+
+## 筛选关键词标准化
+
+后台新增了 `筛选关键词` 配置页，用于把采集数据、后台分类筛选项和前台筛选统一到标准关键词。
+
+例如:
+
+- `大陆 = 中国, 中国大陆, 内地`
+- `美国 = 欧美, 英国, 美国`
+
+当前实现保留原始字符串字段 `area/class/lang/actor` 以兼容现有模板和旧数据，同时新增标准化 token 数组字段用于筛选查询:
+
+- `areaTokens`
+- `classTokens`
+- `langTokens`
+- `actorTokens`
+- `directorTokens`
+- `writerTokens`
+- `filterTokens`
+
+修改别名配置后，建议执行一次:
+
+```bash
+node scripts/migrate-filter-tokens.js
+```
+
+这样历史影片和分类筛选项也会按新的标准关键词重新回填。
 
 ## Caddy 反向代理示例
 
@@ -381,6 +438,13 @@ npm start
 
 ```bash
 node scripts/seed.js --with-types
+npm start
+```
+
+如果你还要一并写入默认筛选别名配置:
+
+```bash
+node scripts/seed.js --with-types --with-filter-alias
 npm start
 ```
 

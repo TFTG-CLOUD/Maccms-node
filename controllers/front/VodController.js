@@ -7,7 +7,6 @@ const {
   buildVodShowFilter,
   buildVodShowBasePath,
   buildVodShowPath,
-  getVodLetterOptions,
   buildVodRatingMeta,
   findOneByMixedId,
   buildPlayerSource,
@@ -15,11 +14,13 @@ const {
   normalizeMediaList,
   resolveTypeSelection
 } = require('../../utils/front');
+const { readCountThroughCache, readQueryThroughCache } = require('../../utils/countCache');
 
 const LIST_FIELDS = '_id name actor pic remarks serial isEnd';
 const RELATED_FIELDS = '_id name actor pic remarks serial isEnd';
 const LIST_PAGE_SIZE = 24;
 const RELATED_VOD_LIMIT = 12;
+const VOD_SHOW_LIST_CACHE_TTL_MS = Math.max(1000, Number(process.env.VOD_SHOW_LIST_CACHE_TTL_MS || 15 * 1000));
 
 function escapeRegex(value) {
   return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -54,7 +55,7 @@ function markActiveNav(res, typeId) {
   const allTypes = Array.isArray(res.locals.allTypes) ? res.locals.allTypes : [];
   if (!navTypes.length || !typeId) return;
 
-  const typeContext = resolveTypeSelection(allTypes, typeId);
+  const typeContext = resolveTypeSelection(allTypes, typeId, res.locals.filterAliasLookup || {});
   const activeId = String(typeContext.rootType?._id || typeContext.currentType?._id || typeId);
   navTypes.forEach((item) => {
     item.active = String(item._id) === activeId;
@@ -105,15 +106,18 @@ class VodController {
 
   async show(req, res) {
     const params = req.mac.params;
+    const uiParams = { ...params };
+    delete uiParams.letter;
     const page = params.page || 1;
     const pagesize = LIST_PAGE_SIZE;
     const seoTemplates = res.locals.seoSettings || config.seo;
+    const filterAliasLookup = res.locals.filterAliasLookup || {};
     const allTypes = Array.isArray(res.locals.allTypes) && res.locals.allTypes.length
       ? res.locals.allTypes
       : await Type.find({ mid: 1, status: true }).sort({ sort: 1 }).lean();
-    const typeContext = resolveTypeSelection(allTypes, params.id);
+    const typeContext = resolveTypeSelection(allTypes, params.id, filterAliasLookup);
     const currentTypeId = typeContext.currentType?._id ?? params.id;
-    const filter = buildVodShowFilter(params, typeContext);
+    const filter = buildVodShowFilter(params, typeContext, filterAliasLookup);
 
     const sortOptions = {};
     const by = params.by || 'time';
@@ -125,18 +129,26 @@ class VodController {
     }
 
     const [total, list] = await Promise.all([
-      Vod.countDocuments(filter),
-      Vod.find(filter)
+      readCountThroughCache('vod:show', filter, () => Vod.countDocuments(filter)),
+      readQueryThroughCache('vod:show:list', {
+        filter,
+        sortOptions,
+        page,
+        pagesize,
+        fields: LIST_FIELDS
+      }, () => Vod.find(filter)
         .select(LIST_FIELDS)
         .sort(sortOptions)
         .skip((page - 1) * pagesize)
         .limit(pagesize)
-        .lean()
+        .lean(), {
+        ttlMs: VOD_SHOW_LIST_CACHE_TTL_MS
+      })
     ]);
 
     const totalPages = Math.ceil(total / pagesize);
     const pageNav = buildPageNav(
-      buildVodShowBasePath(currentTypeId, { ...params, page: null }),
+      buildVodShowBasePath(currentTypeId, { ...uiParams, page: null }),
       page,
       totalPages
     );
@@ -144,7 +156,7 @@ class VodController {
     res.render('stui/vod/show', {
       maccms: config,
       list: normalizeMediaList(list),
-      param: params,
+      param: uiParams,
       page,
       pagesize,
       total,
@@ -152,9 +164,8 @@ class VodController {
       type: typeContext.currentType,
       subTypes: typeContext.subTypes,
       filterOptions: typeContext.filterOptions,
-      letterOptions: getVodLetterOptions(),
       groupTypeId: typeContext.rootType?._id || currentTypeId,
-      buildShowUrl: (overrides = {}) => buildVodShowPath(currentTypeId, { ...params, ...overrides }),
+      buildShowUrl: (overrides = {}) => buildVodShowPath(currentTypeId, { ...uiParams, ...overrides }),
       buildRootShowUrl: () => buildVodShowPath(typeContext.rootType?._id || currentTypeId),
       buildTypeShowUrl: (typeId) => buildVodShowPath(typeId),
       pageNav,
@@ -172,10 +183,11 @@ class VodController {
     const pagesize = LIST_PAGE_SIZE;
     const filter = { status: 1 };
     const seoTemplates = res.locals.seoSettings || config.seo;
+    const filterAliasLookup = res.locals.filterAliasLookup || {};
     const allTypes = Array.isArray(res.locals.allTypes) && res.locals.allTypes.length
       ? res.locals.allTypes
       : await Type.find({ mid: 1, status: true }).sort({ sort: 1 }).lean();
-    const typeContext = resolveTypeSelection(allTypes, params.id);
+    const typeContext = resolveTypeSelection(allTypes, params.id, filterAliasLookup);
     const currentTypeId = typeContext.currentType?._id ?? params.id;
 
     if (params.id) {
@@ -185,7 +197,7 @@ class VodController {
     }
 
     const [total, list] = await Promise.all([
-      Vod.countDocuments(filter),
+      readCountThroughCache('vod:type', filter, () => Vod.countDocuments(filter)),
       Vod.find(filter)
         .select(LIST_FIELDS)
         .sort({ updatedAt: -1 })
@@ -273,7 +285,6 @@ class VodController {
     const wd = String(params.wd || '').trim();
     const page = Math.max(1, parseInt(params.page, 10) || 1);
     const pagesize = LIST_PAGE_SIZE;
-    console.log(req.ip);
     const seoTemplates = res.locals.seoSettings || config.seo;
 
     if (!wd) {

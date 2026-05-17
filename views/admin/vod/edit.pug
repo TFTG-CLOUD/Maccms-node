@@ -22,19 +22,22 @@ block content
       input(type="text" name="year" value=vod.year || '')
     .form-group
       label 地区
-      input(type="text" name="area" value=vod.area || '')
+      textarea(name="area" rows="2" placeholder="支持逗号、斜杠、顿号分隔")= vod.area || ''
     .form-group
       label 语言
-      input(type="text" name="lang" value=vod.lang || '')
+      textarea(name="lang" rows="2" placeholder="支持逗号、斜杠、顿号分隔")= vod.lang || ''
     .form-group
       label 类型标签
-      input(type="text" name="class" value=vod.class || '')
+      textarea(name="class" rows="2" placeholder="支持逗号、斜杠、顿号分隔")= vod.class || ''
     .form-group
       label 演员
-      input(type="text" name="actor" value=vod.actor || '')
+      textarea(name="actor" rows="3" placeholder="支持逗号、斜杠、顿号分隔")= vod.actor || ''
     .form-group
       label 导演
-      input(type="text" name="director" value=vod.director || '')
+      textarea(name="director" rows="3" placeholder="支持逗号、斜杠、顿号分隔")= vod.director || ''
+    .form-group
+      label 编剧
+      textarea(name="writer" rows="3" placeholder="支持逗号、斜杠、顿号分隔")= vod.writer || ''
     .form-group
       label 封面
       input(type="text" name="pic" value=vod.pic || '')

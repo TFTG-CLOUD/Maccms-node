@@ -19,7 +19,7 @@ const DEFAULT_SEO_SETTINGS = {
   show: {
     title: '{type_name}筛选 - {siteName}',
     keywords: '{type_name},{siteKeywords}',
-    description: '{type_name}筛选结果页，支持按地区、年份、字母和排序浏览。'
+    description: '{type_name}筛选结果页，支持按地区、年份和排序浏览。'
   },
   type: {
     title: '{type_name} - {siteName}',

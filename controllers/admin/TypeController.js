@@ -2,12 +2,20 @@ const Type = require('../../models/Type');
 const Vod = require('../../models/Vod');
 const CollectTypeBinding = require('../../models/CollectTypeBinding');
 const CollectSource = require('../../models/CollectSource');
+const FilterAliasSetting = require('../../models/FilterAliasSetting');
 const { clearCache } = require('../../middleware/pageCache');
 const { clearRuntimeCache } = require('../../utils/runtimeCache');
 const { buildMixedIdCandidates, decodeUnicodeText, findOneByMixedId, splitFilterValues } = require('../../utils/front');
+const {
+  DEFAULT_FILTER_ALIAS_SETTINGS,
+  buildAliasLookup,
+  getFilterAliasSettings,
+  normalizeTypeExtendForStorage
+} = require('../../utils/filterAliasConfig');
 
 async function invalidateFrontCaches() {
   await Promise.all([
+    clearRuntimeCache('count:'),
     clearRuntimeCache('front:'),
     clearCache()
   ]);
@@ -63,7 +71,7 @@ function buildParentOptions(types, currentId = null) {
     }));
 }
 
-function parseTypePayload(body) {
+function parseTypePayload(body, aliasLookup = {}) {
   return {
     name: String(body.name || '').trim(),
     en: String(body.en || '').trim(),
@@ -76,12 +84,12 @@ function parseTypePayload(body) {
     tplPlay: String(body.tplPlay || '').trim(),
     tplDown: String(body.tplDown || '').trim(),
     logo: String(body.logo || '').trim(),
-    extend: {
+    extend: normalizeTypeExtendForStorage({
       area: normalizeExtendValue(body.filterArea),
       year: normalizeExtendValue(body.filterYear),
       class: normalizeExtendValue(body.filterClass),
       lang: normalizeExtendValue(body.filterLang)
-    }
+    }, aliasLookup)
   };
 }
 
@@ -179,7 +187,13 @@ class TypeController {
     res.render('type/index', { list, parentOptions: buildParentOptions(rawList) });
   }
   async create(req, res) {
-    const payload = parseTypePayload(req.body);
+    let aliasLookup;
+    try {
+      aliasLookup = buildAliasLookup(await getFilterAliasSettings(FilterAliasSetting));
+    } catch (error) {
+      aliasLookup = buildAliasLookup(DEFAULT_FILTER_ALIAS_SETTINGS);
+    }
+    const payload = parseTypePayload(req.body, aliasLookup);
     const validationError = await validateTypePayload(payload);
     if (validationError) return respondValidationError(req, res, validationError);
 
@@ -198,7 +212,13 @@ class TypeController {
     res.render('type/edit', { type, parentOptions: buildParentOptions(allTypes, rawType?._id) });
   }
   async update(req, res) {
-    const payload = parseTypePayload(req.body);
+    let aliasLookup;
+    try {
+      aliasLookup = buildAliasLookup(await getFilterAliasSettings(FilterAliasSetting));
+    } catch (error) {
+      aliasLookup = buildAliasLookup(DEFAULT_FILTER_ALIAS_SETTINGS);
+    }
+    const payload = parseTypePayload(req.body, aliasLookup);
     const validationError = await validateTypePayload(payload, req.params.id);
     if (validationError) return respondValidationError(req, res, validationError);
 

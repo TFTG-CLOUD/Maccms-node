@@ -6,6 +6,7 @@ try {
 }
 
 let clientPromise = null;
+let activeClient = null;
 let unavailableLogged = false;
 
 async function getRedisClient() {
@@ -24,6 +25,7 @@ async function getRedisClient() {
 
       try {
         await client.connect();
+        activeClient = client;
         return client;
       } catch (error) {
         if (!unavailableLogged) {
@@ -42,6 +44,26 @@ async function getRedisClient() {
   return clientPromise;
 }
 
+async function closeRedisClient() {
+  if (!activeClient) return;
+
+  const client = activeClient;
+  activeClient = null;
+  clientPromise = null;
+
+  try {
+    if (client.isOpen) {
+      await client.quit();
+      return;
+    }
+  } catch (error) {}
+
+  try {
+    await client.disconnect();
+  } catch (error) {}
+}
+
 module.exports = {
+  closeRedisClient,
   getRedisClient
 };

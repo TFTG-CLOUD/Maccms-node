@@ -1,0 +1,23 @@
+extends ../layout
+
+block content
+  h2 筛选关键词别名
+  p(style="margin:10px 0 18px;color:#666;line-height:1.8")
+    | 用于把采集数据和后台筛选项统一到标准关键词。
+    br
+    | 每行一个标准词，格式为：标准词 = 别名1, 别名2。只写标准词也可以。
+    br
+    | 保存后新建/编辑影片、采集入库会按这里生成筛选 token；历史数据请再执行一次迁移脚本回填。
+
+  form(method="POST" action="/admin/filter-alias" style="display:grid;grid-template-columns:repeat(2,minmax(320px,1fr));gap:18px")
+    each field in fields
+      .alias-card(style="background:#fff;padding:20px;border-radius:6px")
+        - const labels = { area: '地区', class: '类型', lang: '语言', actor: '演员', director: '导演', writer: '编剧' }
+        h3(style="margin-bottom:10px")= labels[field] || field
+        textarea(
+          name=field
+          style="min-height:280px;line-height:1.8"
+          placeholder="大陆 = 中国, 中国大陆, 内地"
+        )= formValues[field] || ''
+    div(style="grid-column:1 / -1")
+      button.btn.btn-primary(type="submit") 保存筛选关键词

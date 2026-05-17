@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const config = require('../config');
+const { normalizeKeywordList } = require('./filterAliasConfig');
 
 const HOME_TITLE_ALIASES = {
   连续剧: '电视剧'
@@ -87,71 +88,6 @@ function normalizeFilterValue(value) {
   return decodeUnicodeText(String(value).trim());
 }
 
-function escapeRegex(value) {
-  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function expandAreaAliases(rawValue) {
-  const value = normalizeFilterValue(rawValue);
-  if (!value) return [];
-
-  const values = new Set([value]);
-  const aliasPairs = {
-    大陆: '中国大陆',
-    中国大陆: '大陆',
-    香港: '中国香港',
-    中国香港: '香港',
-    台湾: '中国台湾',
-    中国台湾: '台湾',
-    澳门: '中国澳门',
-    中国澳门: '澳门'
-  };
-
-  if (aliasPairs[value]) values.add(aliasPairs[value]);
-  return [...values];
-}
-
-function buildDelimitedValueRegex(values) {
-  const tokens = dedupeValues((values || []).map((item) => normalizeFilterValue(item)).filter(Boolean));
-  if (!tokens.length) return null;
-  const delimiter = '[\\s,，/、|;；]+';
-  return new RegExp(`(?:^|${delimiter})(?:${tokens.map(escapeRegex).join('|')})(?:$|${delimiter})`, 'i');
-}
-
-function buildExactOrRegexCondition(field, rawValue, options = {}) {
-  const value = normalizeFilterValue(rawValue);
-  if (!value) return null;
-
-  const exactValues = dedupeValues([value, ...(options.aliases || [])].map((item) => normalizeFilterValue(item)).filter(Boolean));
-  const regex = buildDelimitedValueRegex(exactValues);
-  const orConditions = [{ [field]: { $in: exactValues } }];
-
-  if (regex) {
-    orConditions.push({ [field]: regex });
-  }
-
-  return orConditions.length === 1 ? orConditions[0] : { $or: orConditions };
-}
-
-function buildYearCondition(rawYear) {
-  const yearValue = normalizeFilterValue(rawYear);
-  if (!yearValue) return null;
-
-  const exactValues = [yearValue];
-  if (/^\d+$/.test(yearValue)) {
-    exactValues.push(Number(yearValue));
-  }
-
-  const uniqueValues = dedupeValues(exactValues);
-  if (uniqueValues.length === 1) {
-    return { year: uniqueValues[0] };
-  }
-
-  return {
-    $or: uniqueValues.map((item) => ({ year: item }))
-  };
-}
-
 function buildLetterCondition(rawLetter) {
   const letterValue = normalizeFilterValue(rawLetter).toUpperCase();
   if (!letterValue) return null;
@@ -163,7 +99,7 @@ function buildLetterCondition(rawLetter) {
   return { letter: letterValue };
 }
 
-function buildVodShowFilter(params = {}, typeContext = {}) {
+function buildVodShowFilter(params = {}, typeContext = {}, aliasLookup = {}) {
   const filter = { status: 1 };
   const currentTypeId = typeContext.currentType?._id ?? params.id;
 
@@ -173,16 +109,19 @@ function buildVodShowFilter(params = {}, typeContext = {}) {
       : currentTypeId;
   }
 
-  const andConditions = [
-    buildExactOrRegexCondition('area', params.area, { aliases: expandAreaAliases(params.area) }),
-    buildYearCondition(params.year),
-    buildLetterCondition(params.letter),
-    buildExactOrRegexCondition('class', params.class),
-    buildExactOrRegexCondition('lang', params.lang)
-  ].filter(Boolean);
+  const andConditions = [buildLetterCondition(params.letter)].filter(Boolean);
+  const filterTokens = dedupeValues([
+    ...normalizeKeywordList('area', params.area, aliasLookup).map((item) => `area:${item}`),
+    ...(normalizeFilterValue(params.year) ? [`year:${normalizeFilterValue(params.year)}`] : []),
+    ...normalizeKeywordList('class', params.class, aliasLookup).map((item) => `class:${item}`),
+    ...normalizeKeywordList('lang', params.lang, aliasLookup).map((item) => `lang:${item}`)
+  ]);
 
   if (andConditions.length) {
     filter.$and = andConditions;
+  }
+  if (filterTokens.length) {
+    filter.filterTokens = { $all: filterTokens };
   }
 
   return filter;
@@ -205,13 +144,13 @@ function getVodLetterOptions() {
   return [...VOD_LETTER_OPTIONS];
 }
 
-function mergeTypeExtends(types) {
+function mergeTypeExtends(types, aliasLookup = {}) {
   const source = Array.isArray(types) ? types : [];
   return {
-    areas: dedupeValues(source.flatMap((item) => splitFilterValues(item?.extend?.area))),
+    areas: dedupeValues(source.flatMap((item) => normalizeKeywordList('area', item?.extend?.area, aliasLookup))),
     years: dedupeValues(source.flatMap((item) => splitFilterValues(item?.extend?.year))),
-    classes: dedupeValues(source.flatMap((item) => splitFilterValues(item?.extend?.class))),
-    langs: dedupeValues(source.flatMap((item) => splitFilterValues(item?.extend?.lang)))
+    classes: dedupeValues(source.flatMap((item) => normalizeKeywordList('class', item?.extend?.class, aliasLookup))),
+    langs: dedupeValues(source.flatMap((item) => normalizeKeywordList('lang', item?.extend?.lang, aliasLookup)))
   };
 }
 
@@ -252,7 +191,7 @@ function selectNavTypes(types) {
   return dedupeByName((types || []).filter((item) => item && item.status !== false && !hasValue(item.pid)));
 }
 
-function resolveTypeSelection(types, requestedId) {
+function resolveTypeSelection(types, requestedId, aliasLookup = {}) {
   const allTypes = (types || []).filter(Boolean);
   const currentType = findTypeById(allTypes, requestedId);
   if (!currentType) {
@@ -305,7 +244,7 @@ function resolveTypeSelection(types, requestedId) {
     rootType,
     subTypes: displaySubTypes,
     filterTypeIds: [...filterIdMap.values()],
-    filterOptions: mergeTypeExtends(rootCandidates),
+    filterOptions: mergeTypeExtends(rootCandidates, aliasLookup),
     displayName: HOME_TITLE_ALIASES[rootType?.name] || rootType?.name || currentType.name
   };
 }

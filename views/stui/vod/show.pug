@@ -35,12 +35,6 @@ block content
           each year in filterOptions.years
             li(class=(param.year == year ? 'active' : '')): a(href=buildShowUrl({ year, page: null }))= year
 
-      ul.stui-screen__list.letter-list.type-slide.clearfix
-        li: span.text-muted 按字母
-        li(class=(!param.letter ? 'active' : '')): a(href=buildShowUrl({ letter: null, page: null })) 全部
-        each letter in letterOptions || []
-          li(class=(param.letter == letter ? 'active' : '')): a(href=buildShowUrl({ letter, page: null }))= letter
-
       .stui-pannel_hd
         .stui-pannel__head.active.bottom-line.clearfix
           ul.nav.nav-head

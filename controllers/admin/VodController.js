@@ -1,11 +1,19 @@
 const Vod = require('../../models/Vod');
 const Type = require('../../models/Type');
+const FilterAliasSetting = require('../../models/FilterAliasSetting');
 const { clearCache } = require('../../middleware/pageCache');
 const { clearRuntimeCache } = require('../../utils/runtimeCache');
 const { buildMixedIdCandidates, findOneByMixedId } = require('../../utils/front');
+const {
+  DEFAULT_FILTER_ALIAS_SETTINGS,
+  applyVodFilterMetadata,
+  buildAliasLookup,
+  getFilterAliasSettings
+} = require('../../utils/filterAliasConfig');
 
 async function invalidateFrontCaches() {
   await Promise.all([
+    clearRuntimeCache('count:'),
     clearRuntimeCache('front:'),
     clearCache()
   ]);
@@ -13,6 +21,61 @@ async function invalidateFrontCaches() {
 
 function escapeRegex(value) {
   return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+async function buildVodPayload(body = {}) {
+  let aliasLookup;
+  try {
+    aliasLookup = buildAliasLookup(await getFilterAliasSettings(FilterAliasSetting));
+  } catch (error) {
+    aliasLookup = buildAliasLookup(DEFAULT_FILTER_ALIAS_SETTINGS);
+  }
+  const payload = {
+    ...body,
+    playUrls: Vod.parsePlayUrls(body.vod_play_url_raw, body.vod_play_from_raw)
+  };
+
+  delete payload.vod_play_url_raw;
+  delete payload.vod_play_from_raw;
+
+  if (payload.year !== undefined && payload.year !== '') {
+    const parsedYear = parseInt(payload.year, 10);
+    payload.year = Number.isNaN(parsedYear) ? 0 : parsedYear;
+  }
+
+  if (payload.total !== undefined && payload.total !== '') {
+    const parsedTotal = parseInt(payload.total, 10);
+    payload.total = Number.isNaN(parsedTotal) ? 0 : parsedTotal;
+  }
+
+  if (payload.hits !== undefined && payload.hits !== '') {
+    const parsedHits = parseInt(payload.hits, 10);
+    payload.hits = Number.isNaN(parsedHits) ? 0 : parsedHits;
+  }
+
+  if (payload.score !== undefined && payload.score !== '') {
+    const parsedScore = parseFloat(payload.score);
+    payload.score = Number.isNaN(parsedScore) ? 0 : parsedScore;
+  }
+
+  if (payload.doubanScore !== undefined && payload.doubanScore !== '') {
+    const parsedDoubanScore = parseFloat(payload.doubanScore);
+    payload.doubanScore = Number.isNaN(parsedDoubanScore) ? 0 : parsedDoubanScore;
+  }
+
+  if (payload.status !== undefined) {
+    const parsedStatus = parseInt(payload.status, 10);
+    payload.status = Number.isNaN(parsedStatus) ? 0 : parsedStatus;
+  }
+
+  payload.tags = Array.isArray(payload.tags)
+    ? payload.tags
+    : String(payload.tags || '')
+      .split(/[\s,，/、|;；]+/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+  return applyVodFilterMetadata(payload, aliasLookup);
 }
 
 class VodController {
@@ -45,10 +108,8 @@ class VodController {
     res.render('vod/index', { list: normalizedList, types, page, total, pagesize, filter: req.query });
   }
   async create(req, res) {
-    req.body.playUrls = Vod.parsePlayUrls(req.body.vod_play_url_raw, req.body.vod_play_from_raw);
-    delete req.body.vod_play_url_raw;
-    delete req.body.vod_play_from_raw;
-    await Vod.create(req.body);
+    const payload = await buildVodPayload(req.body);
+    await Vod.create(payload);
     await invalidateFrontCaches();
     res.redirect('/admin/vod');
   }
@@ -59,10 +120,8 @@ class VodController {
     res.render('vod/edit', { vod, types });
   }
   async update(req, res) {
-    req.body.playUrls = Vod.parsePlayUrls(req.body.vod_play_url_raw, req.body.vod_play_from_raw);
-    delete req.body.vod_play_url_raw;
-    delete req.body.vod_play_from_raw;
-    await Vod.findOneAndUpdate({ _id: { $in: buildMixedIdCandidates(req.params.id) } }, req.body);
+    const payload = await buildVodPayload(req.body);
+    await Vod.findOneAndUpdate({ _id: { $in: buildMixedIdCandidates(req.params.id) } }, payload);
     await invalidateFrontCaches();
     res.redirect('/admin/vod');
   }

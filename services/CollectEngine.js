@@ -3,6 +3,7 @@ const { md5 } = require('../utils/helpers');
 const CollectSource = require('../models/CollectSource');
 const CollectTypeBinding = require('../models/CollectTypeBinding');
 const CollectHistory = require('../models/CollectHistory');
+const FilterAliasSetting = require('../models/FilterAliasSetting');
 const Vod = require('../models/Vod');
 const mongoose = require('mongoose');
 const xml2js = require('xml2js');
@@ -10,6 +11,12 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 const http = require('http');
+const {
+  DEFAULT_FILTER_ALIAS_SETTINGS,
+  applyVodFilterMetadata,
+  buildAliasLookup,
+  getFilterAliasSettings
+} = require('../utils/filterAliasConfig');
 
 const TIME_RANGE = {
   today: 24,
@@ -241,6 +248,14 @@ function ensureVodDocumentId(vodData = {}) {
   };
 }
 
+async function getFilterAliasLookup() {
+  try {
+    return buildAliasLookup(await getFilterAliasSettings(FilterAliasSetting));
+  } catch (error) {
+    return buildAliasLookup(DEFAULT_FILTER_ALIAS_SETTINGS);
+  }
+}
+
 function ensureVodPicture(pic) {
   const value = String(pic || '').trim();
   return value || DEFAULT_POSTER_PATH;
@@ -470,6 +485,7 @@ class CollectEngine {
   async run(sourceId, options = {}) {
     const source = await CollectSource.findById(sourceId);
     if (!source || !source.status) throw new Error('采集源未找到或已禁用');
+    const aliasLookup = await getFilterAliasLookup();
 
     const range = normalizeCollectRange(options.type);
     const bindings = await CollectTypeBinding.find({ collectSource: sourceId }).lean();
@@ -586,7 +602,7 @@ class CollectEngine {
       }
 
       const prepared = pending.map((entry) => {
-        const normalizedVodData = this.normalize(entry.item, entry.binding.localType, source);
+        const normalizedVodData = this.normalize(entry.item, entry.binding.localType, aliasLookup, source);
         return {
           ...entry,
           vodData: {
@@ -663,7 +679,7 @@ class CollectEngine {
             continue;
           }
 
-          const updateDoc = this.mergeVodData(existingVod, entry.vodData);
+          const updateDoc = this.mergeVodData(existingVod, entry.vodData, aliasLookup);
           if (!hasVodChanges(existingVod, updateDoc)) {
             await CollectHistory.findOneAndUpdate(
               { urlHash: entry.urlHash },
@@ -777,8 +793,8 @@ class CollectEngine {
     return findBestExistingVod(vodData, candidates);
   }
 
-  mergeVodData(existingVod, incomingVod) {
-    return {
+  mergeVodData(existingVod, incomingVod, aliasLookup = {}) {
+    return applyVodFilterMetadata({
       name: pickPreferredString(incomingVod.name, existingVod.name),
       en: pickPreferredString(incomingVod.en, existingVod.en),
       sub: pickPreferredString(incomingVod.sub, existingVod.sub),
@@ -811,7 +827,7 @@ class CollectEngine {
       hitsDay: existingVod.hitsDay,
       hitsWeek: existingVod.hitsWeek,
       hitsMonth: existingVod.hitsMonth
-    };
+    }, aliasLookup);
   }
 
   async fetchList(source, page, hours) {
@@ -945,10 +961,10 @@ class CollectEngine {
     return '';
   }
 
-  normalize(item, localTypeId) {
+  normalize(item, localTypeId, aliasLookup = {}) {
     const remarks = item.vod_remarks || item.note || '';
 
-    return {
+    return applyVodFilterMetadata({
       name: item.vod_name || item.name || '',
       en: item.vod_en || item.en || '',
       sub: item.vod_sub || item.sub || item.subname || '',
@@ -978,7 +994,7 @@ class CollectEngine {
       remarks,
       status: 1,
       letter: (item.vod_letter || item.letter || item.vod_name || item.name || '').charAt(0).toUpperCase()
-    };
+    }, aliasLookup);
   }
 }
 

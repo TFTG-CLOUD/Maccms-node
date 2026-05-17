@@ -14,6 +14,7 @@ const HOME_RANK_FIELDS = '_id name remarks';
 
 class IndexController {
   async index(req, res) {
+    const filterAliasLookup = res.locals.filterAliasLookup || {};
     const allTypes = Array.isArray(res.locals.allTypes) && res.locals.allTypes.length
       ? res.locals.allTypes
       : await Type.find({ mid: 1, status: true }).sort({ sort: 1 }).lean();
@@ -27,7 +28,7 @@ class IndexController {
       async () => {
         const sections = await Promise.all(
           parentTypes.map(async (parentType) => {
-            const typeContext = resolveTypeSelection(allTypes, parentType._id);
+            const typeContext = resolveTypeSelection(allTypes, parentType._id, filterAliasLookup);
             const typeFilter = typeContext.filterTypeIds.length ? { $in: typeContext.filterTypeIds } : parentType._id;
             const [vods, sideVods] = await Promise.all([
               Vod.find({ type: typeFilter, status: 1 })

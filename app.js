@@ -18,6 +18,8 @@ const SeoSetting = require('./models/SeoSetting');
 const { getSeoSettings } = require('./utils/seoConfig');
 const AdSetting = require('./models/AdSetting');
 const { getAdSettings } = require('./utils/adConfig');
+const FilterAliasSetting = require('./models/FilterAliasSetting');
+const { buildAliasLookup, getFilterAliasSettings } = require('./utils/filterAliasConfig');
 const collectTaskRunner = require('./services/CollectTaskRunner');
 const { MongoSessionStore } = require('./services/MongoSessionStore');
 
@@ -139,6 +141,19 @@ app.use(async (req, res, next) => {
   } catch (error) {
     console.error('Ad settings load error:', error.message);
     res.locals.adSettings = null;
+  }
+  next();
+});
+
+app.use(async (req, res, next) => {
+  try {
+    const filterAliasSettings = await getFilterAliasSettings(FilterAliasSetting);
+    res.locals.filterAliasSettings = filterAliasSettings;
+    res.locals.filterAliasLookup = buildAliasLookup(filterAliasSettings);
+  } catch (error) {
+    console.error('Filter alias settings load error:', error.message);
+    res.locals.filterAliasSettings = null;
+    res.locals.filterAliasLookup = buildAliasLookup();
   }
   next();
 });

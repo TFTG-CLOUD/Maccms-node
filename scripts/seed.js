@@ -3,6 +3,9 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const Admin = require('../models/Admin');
 const Type = require('../models/Type');
+const FilterAliasSetting = require('../models/FilterAliasSetting');
+const { DEFAULT_FILTER_ALIAS_SETTINGS, normalizeFilterAliasSettings } = require('../utils/filterAliasConfig');
+const { closeRedisClient } = require('../services/RedisClient');
 
 const adminName = process.env.ADMIN_INIT_NAME || 'admin';
 const adminPassword = process.env.ADMIN_INIT_PASSWORD || 'admin123';
@@ -125,6 +128,14 @@ function shouldSeedTypes(args = []) {
   return args.includes('--with-types');
 }
 
+function shouldSeedFilterAliases(args = []) {
+  return args.includes('--with-filter-alias');
+}
+
+function getDefaultFilterAliasSettings() {
+  return normalizeFilterAliasSettings(DEFAULT_FILTER_ALIAS_SETTINGS);
+}
+
 async function seedAdminAccount() {
   const existing = await Admin.findOne({ name: adminName });
   if (!existing) {
@@ -160,8 +171,23 @@ async function seedTypes() {
   console.log(`All ${allTypes.length} types already exist`);
 }
 
+async function seedFilterAliases() {
+  const existing = await FilterAliasSetting.findOne({ key: 'default' }).lean();
+  if (existing) {
+    console.log('Filter alias settings already exist: default');
+    return;
+  }
+
+  await FilterAliasSetting.create({
+    key: 'default',
+    ...getDefaultFilterAliasSettings()
+  });
+  console.log('Filter alias settings created: default');
+}
+
 async function main(args = seedArgs) {
   const seedTypeData = shouldSeedTypes(args);
+  const seedFilterAliasData = shouldSeedFilterAliases(args);
   await mongoose.connect(process.env.MONGODB_URI);
 
   try {
@@ -172,8 +198,15 @@ async function main(args = seedArgs) {
     } else {
       console.log('Skip type seed. Pass --with-types to initialize built-in categories.');
     }
+
+    if (seedFilterAliasData) {
+      await seedFilterAliases();
+    } else {
+      console.log('Skip filter alias seed. Pass --with-filter-alias to initialize default filter alias settings.');
+    }
   } finally {
     await mongoose.disconnect();
+    await closeRedisClient();
   }
 }
 
@@ -185,8 +218,11 @@ if (require.main === module) {
 }
 
 module.exports = {
+  getDefaultFilterAliasSettings,
   getAllTypes,
   seedAdminAccount,
+  seedFilterAliases,
   seedTypes,
+  shouldSeedFilterAliases,
   shouldSeedTypes
 };

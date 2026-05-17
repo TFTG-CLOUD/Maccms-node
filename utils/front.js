@@ -105,9 +105,10 @@ function buildVodShowFilter(params = {}, typeContext = {}, aliasLookup = {}) {
   const currentTypeId = typeContext.currentType?._id ?? params.id;
 
   if (params.id) {
-    filter.type = typeContext.filterTypeIds?.length
-      ? { $in: typeContext.filterTypeIds }
-      : currentTypeId;
+    const typeCandidates = buildMixedTypeCandidates(
+      typeContext.filterTypeIds?.length ? typeContext.filterTypeIds : [currentTypeId]
+    );
+    filter.type = typeCandidates.length === 1 ? typeCandidates[0] : { $in: typeCandidates };
   }
 
   const andConditions = [buildLetterCondition(params.letter)].filter(Boolean);
@@ -233,6 +234,12 @@ function resolveTypeSelection(types, requestedId, aliasLookup = {}) {
 
   if (directChildren.length) {
     for (const item of [...directChildren, ...subTypeAliases]) {
+      filterIdMap.set(idKey(item._id), item._id);
+    }
+  } else {
+    const relatedTypeNames = new Set(currentAliases.map((item) => item.name));
+    for (const item of allTypes) {
+      if (!relatedTypeNames.has(item.name)) continue;
       filterIdMap.set(idKey(item._id), item._id);
     }
   }
@@ -409,6 +416,41 @@ function buildMixedIdCandidates(id) {
   return candidates;
 }
 
+function buildMixedTypeCandidates(values = []) {
+  const source = Array.isArray(values) ? values : [values];
+  const candidates = [];
+  const seen = new Set();
+
+  for (const value of source) {
+    for (const candidate of buildMixedIdCandidates(value)) {
+      const key = candidate instanceof mongoose.Types.ObjectId
+        ? `oid:${candidate.toString()}`
+        : `${typeof candidate}:${String(candidate)}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      candidates.push(candidate);
+    }
+
+    const raw = idKey(value);
+    if (/^\d+$/.test(raw)) {
+      const stringKey = `string:${raw}`;
+      if (!seen.has(stringKey)) {
+        seen.add(stringKey);
+        candidates.push(raw);
+      }
+
+      const numberValue = Number(raw);
+      const numberKey = `number:${numberValue}`;
+      if (!Number.isNaN(numberValue) && !seen.has(numberKey)) {
+        seen.add(numberKey);
+        candidates.push(numberValue);
+      }
+    }
+  }
+
+  return candidates;
+}
+
 async function findOneByMixedId(Model, id, populate = '') {
   const candidates = buildMixedIdCandidates(id);
   let query = Model.findOne({ _id: { $in: candidates } });
@@ -419,6 +461,7 @@ async function findOneByMixedId(Model, id, populate = '') {
 module.exports = {
   buildPlaylistSections,
   buildMixedIdCandidates,
+  buildMixedTypeCandidates,
   buildPlayerSource,
   buildVodRatingMeta,
   buildVodShowFilter,

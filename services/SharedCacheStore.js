@@ -112,7 +112,6 @@ class RedisCacheStore {
       await this.client.zRem(this.indexKey, storeKey);
       return null;
     }
-    await this.client.zAdd(this.indexKey, [{ score: Date.now(), value: storeKey }]);
     return JSON.parse(raw);
   }
 
@@ -135,7 +134,7 @@ class RedisCacheStore {
     const pattern = `${this.buildKey(prefix)}*`;
     const keys = await this.scanKeys(pattern);
     if (keys.length > 0) {
-      await this.client.del(keys);
+      await this.deleteKeys(keys);
       await this.client.zRem(this.indexKey, keys);
     }
   }
@@ -144,24 +143,12 @@ class RedisCacheStore {
     const keys = await this.scanKeys(`${this.prefix}:*`);
     const filtered = keys.filter((key) => key !== this.indexKey);
     if (filtered.length > 0) {
-      await this.client.del(filtered);
+      await this.deleteKeys(filtered);
     }
     await this.client.del(this.indexKey);
   }
 
   async cleanupExpired() {
-    const members = await this.client.zRange(this.indexKey, 0, -1);
-    if (members.length === 0) return;
-    const pipeline = this.client.multi();
-    members.forEach((key) => pipeline.exists(key));
-    const result = await pipeline.exec();
-    const staleKeys = members.filter((key, index) => {
-      const existsResult = result?.[index];
-      return Array.isArray(existsResult) ? Number(existsResult[1]) === 0 : Number(existsResult) === 0;
-    });
-    if (staleKeys.length > 0) {
-      await this.client.zRem(this.indexKey, staleKeys);
-    }
     await this.trimToMaxEntries();
   }
 
@@ -172,7 +159,16 @@ class RedisCacheStore {
     const staleMembers = await this.client.zRange(this.indexKey, 0, overflow - 1);
     if (staleMembers.length === 0) return;
     await this.client.zRem(this.indexKey, staleMembers);
-    await this.client.del(staleMembers);
+    await this.deleteKeys(staleMembers);
+  }
+
+  async deleteKeys(keys) {
+    if (!Array.isArray(keys) || keys.length === 0) return;
+    if (typeof this.client.unlink === 'function') {
+      await this.client.unlink(keys);
+      return;
+    }
+    await this.client.del(keys);
   }
 
   async scanKeys(pattern) {
@@ -204,5 +200,6 @@ function getSharedCacheStore(prefix, options = {}) {
 
 module.exports = {
   getSharedCacheStore,
-  MemoryCacheStore
+  MemoryCacheStore,
+  RedisCacheStore
 };

@@ -6,6 +6,7 @@ const {
   buildPlaylistSections,
   buildVodShowFilter,
   buildMixedIdCandidates,
+  buildMixedTypeCandidates,
   buildPlayerSource,
   buildVodRatingMeta,
   getVodLetterOptions,
@@ -64,7 +65,7 @@ test('buildVodShowFilter supports legacy year strings, area aliases and digit le
     lang: '国语'
   }, {
     currentType: { _id: 39 },
-    filterTypeIds: [39, 40]
+    filterTypeIds: [39, '40']
   }, {
     area: new Map([
       ['大陆', '大陆'],
@@ -80,7 +81,7 @@ test('buildVodShowFilter supports legacy year strings, area aliases and digit le
   });
 
   assert.equal(filter.status, 1);
-  assert.deepEqual(filter.type, { $in: [39, 40] });
+  assert.deepEqual(filter.type, { $in: [39, '39', '40', 40] });
   assert.deepEqual(filter.filterTokens, {
     $all: ['area:大陆', 'year:2025', 'class:动作', 'lang:国语']
   });
@@ -161,6 +162,19 @@ test('buildMixedIdCandidates supports numeric and ObjectId forms', () => {
   assert.equal(String(objectIdCandidates[1]), '6a0697c6fb1bd768da9d90cc');
   assert.equal(typeof objectIdCandidates[0], 'string');
   assert.equal(objectIdCandidates[1].constructor.name, 'ObjectId');
+});
+
+test('buildMixedTypeCandidates expands numeric and string category ids together', () => {
+  assert.deepEqual(
+    buildMixedTypeCandidates([66]).map((item) => String(item)),
+    ['66', '66']
+  );
+
+  const mixedCandidates = buildMixedTypeCandidates([66, '44']);
+  assert.equal(mixedCandidates.some((item) => item === 66), true);
+  assert.equal(mixedCandidates.some((item) => item === '66'), true);
+  assert.equal(mixedCandidates.some((item) => item === 44), true);
+  assert.equal(mixedCandidates.some((item) => item === '44'), true);
 });
 
 test('buildPlayerSource detects hls, native video and iframe fallbacks', () => {

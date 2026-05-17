@@ -17,17 +17,13 @@ function isPageCacheWhitelistedPath(path) {
     /^\/index\.php\/?$/.test(path) ||
     /^\/(?:index\.php\/)?index\/index\/?$/.test(path) ||
     /^\/(?:index\.php\/)?vod\/(?:type|show)\/id\/[^/.?#]+(?:\/page\/\d+)?\.html$/.test(path) ||
-    /^\/(?:index\.php\/)?vod\/detail\/id\/[^/.?#]+\.html$/.test(path) ||
-    /^\/(?:index\.php\/)?vod\/play\/id\/[^/.?#]+\/sid\/\d+\/nid\/\d+\.html$/.test(path)
+    /^\/(?:index\.php\/)?vod\/detail\/id\/[^/.?#]+\.html$/.test(path)
   );
 }
 
 function getPageCacheTtlMs(path) {
   if (/^\/(?:index\.php\/)?vod\/detail\/id\/[^/.?#]+\.html$/.test(path)) {
     return DETAIL_PAGE_CACHE_TTL_MS;
-  }
-  if (/^\/(?:index\.php\/)?vod\/play\/id\/[^/.?#]+\/sid\/\d+\/nid\/\d+\.html$/.test(path)) {
-    return PLAY_PAGE_CACHE_TTL_MS;
   }
   return PAGE_CACHE_TTL_MS;
 }

@@ -9,6 +9,7 @@ const {
   buildVodShowPath,
   buildVodRatingMeta,
   buildPlaylistSections,
+  buildMixedTypeCandidates,
   findOneByMixedId,
   buildPlayerSource,
   normalizeMediaEntity,
@@ -81,7 +82,7 @@ class VodController {
     if (!vod || vod.status !== 1) return res.status(404).render('error', { message: '影片不存在或未审核' });
 
     const relatedVods = await Vod.find({
-      type: vod.type,
+      type: { $in: buildMixedTypeCandidates([vod.type]) },
       _id: { $ne: vod._id },
       status: 1
     }).select(RELATED_FIELDS).sort({ hits: -1 }).limit(RELATED_VOD_LIMIT).lean();
@@ -195,9 +196,10 @@ class VodController {
     const currentTypeId = typeContext.currentType?._id ?? params.id;
 
     if (params.id) {
-      filter.type = typeContext.filterTypeIds.length
-        ? { $in: typeContext.filterTypeIds }
-        : currentTypeId;
+      const typeCandidates = buildMixedTypeCandidates(
+        typeContext.filterTypeIds.length ? typeContext.filterTypeIds : [currentTypeId]
+      );
+      filter.type = typeCandidates.length === 1 ? typeCandidates[0] : { $in: typeCandidates };
     }
 
     const [total, list] = await Promise.all([
@@ -253,7 +255,7 @@ class VodController {
     const playlistSections = buildPlaylistSections(vod, { activeSid: serverIndex + 1, activeNid: episode.nid || (episodeIndex + 1) });
 
     const relatedVods = await Vod.find({
-      type: vod.type,
+      type: { $in: buildMixedTypeCandidates([vod.type]) },
       _id: { $ne: vod._id },
       status: 1
     }).select(RELATED_FIELDS).sort({ hits: -1 }).limit(RELATED_VOD_LIMIT).lean();

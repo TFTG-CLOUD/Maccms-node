@@ -3,6 +3,7 @@ const Vod = require('../../models/Vod');
 const Type = require('../../models/Type');
 const { seoReplace } = require('../../utils/helpers');
 const {
+  buildMixedTypeCandidates,
   normalizeMediaList,
   resolveTypeSelection,
   selectNavTypes
@@ -29,7 +30,10 @@ class IndexController {
         const sections = await Promise.all(
           parentTypes.map(async (parentType) => {
             const typeContext = resolveTypeSelection(allTypes, parentType._id, filterAliasLookup);
-            const typeFilter = typeContext.filterTypeIds.length ? { $in: typeContext.filterTypeIds } : parentType._id;
+            const typeCandidates = buildMixedTypeCandidates(
+              typeContext.filterTypeIds.length ? typeContext.filterTypeIds : [parentType._id]
+            );
+            const typeFilter = typeCandidates.length === 1 ? typeCandidates[0] : { $in: typeCandidates };
             const [vods, sideVods] = await Promise.all([
               Vod.find({ type: typeFilter, status: 1 })
                 .select(HOME_CARD_FIELDS)

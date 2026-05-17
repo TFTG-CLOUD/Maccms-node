@@ -131,6 +131,7 @@ URL_MODE=clean
 CACHE_ENABLE=true
 FRONT_NAV_CACHE_TIME=600
 FRONT_HOME_CACHE_TIME=120
+ENABLE_HTTP_COMPRESSION=false
 
 ENABLE_CRON=true
 
@@ -210,9 +211,15 @@ http://localhost:3000/admin/login
 | `SEARCH_RATE_LIMIT_BAN_WINDOW_MS` | 前台搜索封禁统计窗口，默认 `3600000` 毫秒 |
 | `SEARCH_RATE_LIMIT_BAN_MAX` | 前台搜索单网段在封禁统计窗口内允许次数，默认 `100` |
 | `SEARCH_RATE_LIMIT_BAN_DURATION_MS` | 前台搜索触发封禁后的限制时长，默认 `21600000` 毫秒 |
+| `FRONT_RATE_LIMIT_WINDOW_MS` | 前台普通页面限流窗口，默认 `3600000` 毫秒 |
+| `FRONT_RATE_LIMIT_MAX` | 前台普通页面短窗口允许次数，默认 `1000000`，主要用于关闭短窗口拦截，仅保留封禁统计 |
+| `FRONT_RATE_LIMIT_BAN_WINDOW_MS` | 前台普通页面封禁统计窗口，默认 `3600000` 毫秒 |
+| `FRONT_RATE_LIMIT_BAN_MAX` | 前台普通页面单网段在封禁统计窗口内允许次数，默认 `200` |
+| `FRONT_RATE_LIMIT_BAN_DURATION_MS` | 前台普通页面触发封禁后的限制时长，默认 `21600000` 毫秒 |
 | `TEMPLATE_THEME` | 当前主题，默认 `stui` |
 | `URL_MODE` | 路由模式，`clean` 或 `pathinfo` |
 | `CACHE_ENABLE` | 是否启用页面缓存，`true` 时开启 |
+| `ENABLE_HTTP_COMPRESSION` | 是否在 Node 进程内启用 `compression()`，默认 `false`，建议交给 Caddy/Nginx |
 | `PAGE_CACHE_TTL_MS` | 页面缓存 TTL，默认 `3600000` 毫秒 |
 | `PAGE_CACHE_MAX_ENTRIES` | 页面缓存最大条目数，默认 `500` |
 | `RUNTIME_CACHE_MAX_ENTRIES` | 运行时缓存最大条目数，默认 `300` |
@@ -592,6 +599,14 @@ node tools/template-converter.js /path/to/index.html /Users/quyue/www/maccms-nod
 配置 `REDIS_URL` 后，页面缓存和运行时缓存都会切换到 Redis 共享存储。
 如果没有配置 Redis，则会回退到 Node 进程内存缓存。
 
+如果站点前面有 Caddy/Nginx，建议把:
+
+```env
+ENABLE_HTTP_COMPRESSION=false
+```
+
+保持为关闭，让反向代理负责压缩响应，避免高并发时 Node 进程把 CPU 花在 HTML gzip 上。
+
 它的意义主要是:
 
 - 减少重复模板渲染
@@ -610,6 +625,7 @@ node tools/template-converter.js /path/to/index.html /Users/quyue/www/maccms-nod
 - 配置了 `REDIS_URL` 时，页面缓存和运行时缓存会在 worker 之间共享
 - 没配置 `REDIS_URL` 时，页面缓存和运行时缓存仍然是每个 worker 各自一份
 - 搜索限流在配置 `REDIS_URL` 后会切换为 Redis 共享计数
+- 前台普通页面也会按网段共享封禁计数；默认 1 小时超过 200 次则封 6 小时
 - `CRON_PRIMARY_ONLY=true` 时，只有 `NODE_APP_INSTANCE=0` 的进程会启动定时任务
 
 ## 命中统计说明

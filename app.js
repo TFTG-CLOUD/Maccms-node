@@ -11,27 +11,19 @@ const scheduler = require('./services/Scheduler');
 const config = require('./config');
 const routes = require('./routes');
 const { pageCacheMiddleware } = require('./middleware/pageCache');
-const { selectNavTypes } = require('./utils/front');
-const { readThroughCache } = require('./utils/runtimeCache');
 const { macUrl, stripIndexPhp } = require('./utils/urlHelper');
-const SeoSetting = require('./models/SeoSetting');
-const { getSeoSettings } = require('./utils/seoConfig');
-const AdSetting = require('./models/AdSetting');
-const { getAdSettings } = require('./utils/adConfig');
-const FilterAliasSetting = require('./models/FilterAliasSetting');
-const { buildAliasLookup, getFilterAliasSettings } = require('./utils/filterAliasConfig');
 const collectTaskRunner = require('./services/CollectTaskRunner');
 const { MongoSessionStore } = require('./services/MongoSessionStore');
 
 const app = express();
 const STATIC_CACHE_MAX_AGE = '1d';
-const FRONT_NAV_CACHE_TTL_MS = Math.max(1, Number(config.frontNavCacheTime || 600)) * 1000;
 const ADMIN_SESSION_MAX_AGE_MS = Math.max(
   60 * 60 * 1000,
   Number(process.env.ADMIN_SESSION_MAX_AGE_MS) || 30 * 24 * 60 * 60 * 1000
 );
 const TRUST_PROXY = process.env.TRUST_PROXY;
 const CRON_PRIMARY_ONLY = process.env.CRON_PRIMARY_ONLY !== 'false';
+const ENABLE_HTTP_COMPRESSION = process.env.ENABLE_HTTP_COMPRESSION === 'true';
 
 function shouldStartCronScheduler() {
   if (process.env.ENABLE_CRON === 'false') return false;
@@ -61,7 +53,9 @@ app.set('views', [
   path.join(__dirname, 'views')
 ]);
 
-app.use(compression());
+if (ENABLE_HTTP_COMPRESSION) {
+  app.use(compression());
+}
 app.use('/static', express.static(path.join(__dirname, 'public'), { maxAge: STATIC_CACHE_MAX_AGE }));
 app.use('/upload', express.static(path.join(__dirname, 'public', 'upload'), {
   fallthrough: false,
@@ -94,69 +88,6 @@ app.use(flash());
 
 app.locals.maccms = config;
 app.locals.macUrl = macUrl;
-
-app.use(async (req, res, next) => {
-  try {
-    const Type = require('./models/Type');
-    const navData = await readThroughCache('front:nav', FRONT_NAV_CACHE_TTL_MS, async () => {
-      const allTypes = await Type.find({ mid: 1, status: true }).sort({ sort: 1 }).lean();
-      return {
-        allTypes,
-        navTypes: selectNavTypes(allTypes)
-      };
-    });
-    const allTypes = Array.isArray(navData.allTypes) ? navData.allTypes : [];
-    const types = Array.isArray(navData.navTypes)
-      ? navData.navTypes.map((item) => ({ ...item }))
-      : [];
-    const pathReq = req.path;
-    const isIndexPage = pathReq === '/' || pathReq === '/index.php' || /^\/index\.php\/index\/index\/?$/.test(pathReq);
-    res.locals.homeActive = isIndexPage;
-    types.forEach(t => {
-      t.active = pathReq.includes('/vod/show/id/' + t._id) || pathReq.includes('/vod/type/id/' + t._id) || false;
-    });
-    res.locals.allTypes = allTypes;
-    res.locals.types = types;
-  } catch(e) {
-    res.locals.allTypes = [];
-    res.locals.types = [];
-    res.locals.homeActive = req.path === '/' || req.path === '/index.php' || /^\/index\.php\/index\/index\/?$/.test(req.path);
-  }
-  next();
-});
-
-app.use(async (req, res, next) => {
-  try {
-    res.locals.seoSettings = await getSeoSettings(SeoSetting);
-  } catch (error) {
-    console.error('SEO settings load error:', error.message);
-    res.locals.seoSettings = null;
-  }
-  next();
-});
-
-app.use(async (req, res, next) => {
-  try {
-    res.locals.adSettings = await getAdSettings(AdSetting);
-  } catch (error) {
-    console.error('Ad settings load error:', error.message);
-    res.locals.adSettings = null;
-  }
-  next();
-});
-
-app.use(async (req, res, next) => {
-  try {
-    const filterAliasSettings = await getFilterAliasSettings(FilterAliasSetting);
-    res.locals.filterAliasSettings = filterAliasSettings;
-    res.locals.filterAliasLookup = buildAliasLookup(filterAliasSettings);
-  } catch (error) {
-    console.error('Filter alias settings load error:', error.message);
-    res.locals.filterAliasSettings = null;
-    res.locals.filterAliasLookup = buildAliasLookup();
-  }
-  next();
-});
 
 // 301 重定向: clean 模式下将 /index.php/* 永久重定向到 /* (不含 index.php)
 if (config.urlMode === 'clean') {
@@ -199,6 +130,10 @@ mongoose.connect(process.env.MONGODB_URI)
       console.log('Cron scheduler started (every 30 min)');
     } else {
       console.log('Cron scheduler skipped for this process');
+    }
+
+    if (!ENABLE_HTTP_COMPRESSION) {
+      console.log('HTTP compression disabled in Node; rely on reverse proxy/CDN compression if available');
     }
   })
   .catch(err => {

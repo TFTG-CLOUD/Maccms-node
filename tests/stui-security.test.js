@@ -32,6 +32,8 @@ test('stui layout includes anti-transform meta tags for mobile browsers', () => 
   const layout = read('views/stui/layout.pug');
 
   assert.equal(layout.includes('meta(name="applicable-device" content="pc,mobile")'), true);
+  assert.equal(layout.includes('meta(name="MobileOptimized" content="width")'), true);
+  assert.equal(layout.includes('meta(name="HandheldFriendly" content="true")'), true);
   assert.equal(layout.includes('meta(http-equiv="Cache-Control" content="no-transform")'), true);
   assert.equal(layout.includes('meta(http-equiv="Cache-Control" content="no-siteapp")'), true);
   assert.equal(layout.includes('meta(name="format-detection" content="telephone=no")'), true);
@@ -49,4 +51,10 @@ test('stui play template defers media element creation until client-side interac
   assert.equal(play.includes('data-player-url='), false);
   assert.equal(play.includes('data-player-payload='), true);
   assert.equal(play.includes('decodePlayerPayload'), true);
+});
+
+test('application serves legacy /img assets through an explicit static mount', () => {
+  const appSource = read('app.js');
+
+  assert.equal(appSource.includes("app.use('/img', express.static(path.join(__dirname, 'public', 'img')"), true);
 });

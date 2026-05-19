@@ -58,6 +58,7 @@ if (ENABLE_HTTP_COMPRESSION) {
   app.use(compression());
 }
 app.use('/static', express.static(path.join(__dirname, 'public'), { maxAge: STATIC_CACHE_MAX_AGE }));
+app.use('/img', express.static(path.join(__dirname, 'public', 'img'), { maxAge: STATIC_CACHE_MAX_AGE }));
 app.use('/upload', express.static(path.join(__dirname, 'public', 'upload'), {
   fallthrough: false,
   maxAge: STATIC_CACHE_MAX_AGE

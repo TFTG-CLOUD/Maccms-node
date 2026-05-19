@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('http');
+const { Readable } = require('node:stream');
 
 const {
   DEFAULT_POSTER_PATH,
@@ -174,6 +175,7 @@ test('ensureVodDocumentId assigns a generated _id for newly created vod docs', (
 });
 
 test('ensureVodPicture falls back to the default poster when picture is missing', () => {
+  assert.equal(DEFAULT_POSTER_PATH, '/static/img/no-poster.webp');
   assert.equal(ensureVodPicture(''), DEFAULT_POSTER_PATH);
   assert.equal(ensureVodPicture(null), DEFAULT_POSTER_PATH);
   assert.equal(ensureVodPicture('/upload/vod/demo.jpg'), '/upload/vod/demo.jpg');
@@ -185,6 +187,7 @@ test('downloadImageWithRetry returns CDN url when CDN upload is enabled', async 
   const originalBaseUrl = process.env.CDN_UPLOAD_BASE_URL;
   const originalFetch = globalThis.fetch;
   const originalFormData = globalThis.FormData;
+  const originalHttpGet = http.get;
 
   process.env.CDN_UPLOAD_API_KEY = 'demo-key';
   process.env.CDN_UPLOAD_API_SECRET = 'demo-secret';
@@ -217,25 +220,36 @@ test('downloadImageWithRetry returns CDN url when CDN upload is enabled', async 
     };
   };
 
-  const server = http.createServer((req, res) => {
-    res.writeHead(200, { 'Content-Type': 'image/jpeg' });
-    res.end(Buffer.from('fake-image-content'));
-  });
-
-  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
-  const address = server.address();
-  const imageUrl = `http://127.0.0.1:${address.port}/poster.jpg`;
+  http.get = (url, options, callback) => {
+    const res = new Readable({
+      read() {
+        this.push(Buffer.from('fake-image-content'));
+        this.push(null);
+      }
+    });
+    res.statusCode = 200;
+    res.headers = { 'content-type': 'image/jpeg' };
+    callback(res);
+    return {
+      on(eventName) {
+        if (eventName === 'timeout') {
+          return this;
+        }
+        return this;
+      }
+    };
+  };
 
   t.after(async () => {
-    await new Promise((resolve) => server.close(resolve));
     process.env.CDN_UPLOAD_API_KEY = originalKey;
     process.env.CDN_UPLOAD_API_SECRET = originalSecret;
     process.env.CDN_UPLOAD_BASE_URL = originalBaseUrl;
     globalThis.fetch = originalFetch;
     globalThis.FormData = originalFormData;
+    http.get = originalHttpGet;
   });
 
-  const result = await downloadImageWithRetry(imageUrl);
+  const result = await downloadImageWithRetry('http://example.com/poster.jpg');
 
   assert.equal(result.path, 'https://img.example.com/poster.jpg');
   assert.equal(result.usedFallback, false);

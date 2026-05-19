@@ -31,7 +31,7 @@ const TIME_RANGE = {
 
 const DEFAULT_IMAGE_CONCURRENCY = 5;
 const DEFAULT_IMAGE_RETRY = 2;
-const DEFAULT_POSTER_PATH = '/img/no-poster.webp';
+const DEFAULT_POSTER_PATH = '/static/img/no-poster.webp';
 const UPLOAD_DIR = path.join(__dirname, '..', 'public', 'upload', 'vod');
 
 function normalizeCollectRange(type) {

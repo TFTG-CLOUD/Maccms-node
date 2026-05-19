@@ -13,6 +13,7 @@ function createRedisMock(overrides = {}) {
     zCardCalls: [],
     delCalls: [],
     unlinkCalls: [],
+    scanCalls: [],
     multiCalls: 0,
     get: async function get(key) {
       this.getCalls.push(key);
@@ -48,6 +49,13 @@ function createRedisMock(overrides = {}) {
     },
     unlink: async function unlink(keys) {
       this.unlinkCalls.push(keys);
+    },
+    scan: async function scan(cursor, options) {
+      this.scanCalls.push({ cursor, options });
+      if (typeof overrides.scan === 'function') {
+        return overrides.scan(cursor, options);
+      }
+      return ['0', []];
     },
     multi: function multi() {
       this.multiCalls += 1;
@@ -89,4 +97,48 @@ test('redis cache cleanupExpired only trims overflow members without full exists
   assert.equal(client.zRangeCalls.length, 1);
   assert.equal(client.zRemCalls.length, 1);
   assert.equal(client.unlinkCalls.length, 1);
+});
+
+test('redis cache deleteByPrefix removes indexed keys without scan', async () => {
+  const client = createRedisMock({
+    zRange: () => [
+      'shared-test:query:one',
+      'shared-test:query:two',
+      'shared-test:front:three'
+    ]
+  });
+  const store = new RedisCacheStore(client, 'shared-test', { maxEntries: 10, cleanupIntervalMs: 60 * 1000 });
+
+  await store.deleteByPrefix('query:');
+
+  assert.equal(client.scanCalls.length, 0);
+  assert.equal(client.zRangeCalls.length, 1);
+  assert.deepEqual(client.unlinkCalls[0], [
+    'shared-test:query:one',
+    'shared-test:query:two'
+  ]);
+  assert.deepEqual(client.zRemCalls[0], {
+    key: 'shared-test:__index__',
+    members: ['shared-test:query:one', 'shared-test:query:two']
+  });
+});
+
+test('redis cache clear removes indexed keys without scan', async () => {
+  const client = createRedisMock({
+    zRange: () => [
+      'shared-test:query:one',
+      'shared-test:front:two'
+    ]
+  });
+  const store = new RedisCacheStore(client, 'shared-test', { maxEntries: 10, cleanupIntervalMs: 60 * 1000 });
+
+  await store.clear();
+
+  assert.equal(client.scanCalls.length, 0);
+  assert.equal(client.zRangeCalls.length, 1);
+  assert.deepEqual(client.unlinkCalls[0], [
+    'shared-test:query:one',
+    'shared-test:front:two'
+  ]);
+  assert.deepEqual(client.delCalls[0], 'shared-test:__index__');
 });

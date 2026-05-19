@@ -131,8 +131,9 @@ class RedisCacheStore {
   }
 
   async deleteByPrefix(prefix = '') {
-    const pattern = `${this.buildKey(prefix)}*`;
-    const keys = await this.scanKeys(pattern);
+    const matchPrefix = this.buildKey(prefix);
+    const keys = (await this.getIndexedKeys())
+      .filter((key) => key.startsWith(matchPrefix));
     if (keys.length > 0) {
       await this.deleteKeys(keys);
       await this.client.zRem(this.indexKey, keys);
@@ -140,10 +141,9 @@ class RedisCacheStore {
   }
 
   async clear() {
-    const keys = await this.scanKeys(`${this.prefix}:*`);
-    const filtered = keys.filter((key) => key !== this.indexKey);
-    if (filtered.length > 0) {
-      await this.deleteKeys(filtered);
+    const keys = await this.getIndexedKeys();
+    if (keys.length > 0) {
+      await this.deleteKeys(keys);
     }
     await this.client.del(this.indexKey);
   }
@@ -171,16 +171,9 @@ class RedisCacheStore {
     await this.client.del(keys);
   }
 
-  async scanKeys(pattern) {
-    const keys = [];
-    let cursor = '0';
-    do {
-      const reply = await this.client.scan(cursor, { MATCH: pattern, COUNT: 100 });
-      cursor = Array.isArray(reply) ? reply[0] : reply.cursor;
-      const batch = Array.isArray(reply) ? reply[1] : reply.keys;
-      keys.push(...batch);
-    } while (cursor !== '0');
-    return keys;
+  async getIndexedKeys() {
+    const keys = await this.client.zRange(this.indexKey, 0, -1);
+    return keys.filter((key) => key && key !== this.indexKey);
   }
 }
 

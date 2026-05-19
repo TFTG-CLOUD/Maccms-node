@@ -79,7 +79,7 @@ module.exports = [
     },
     "weeks": "0,1,2,3,4,5,6",
     "hours": "00",
-    "runtime": null
+    "runtime": 1779206400313
   },
   {
     "status": 1,

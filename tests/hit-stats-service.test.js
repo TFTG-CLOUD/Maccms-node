@@ -10,12 +10,12 @@ test('resetScope clears day hit counters for vod and art', async () => {
   const originalArtUpdateMany = Art.updateMany;
   const calls = [];
 
-  Vod.updateMany = async (filter, update) => {
-    calls.push({ model: 'vod', filter, update });
+  Vod.updateMany = async (filter, update, options) => {
+    calls.push({ model: 'vod', filter, update, options });
     return { acknowledged: true, modifiedCount: 3 };
   };
-  Art.updateMany = async (filter, update) => {
-    calls.push({ model: 'art', filter, update });
+  Art.updateMany = async (filter, update, options) => {
+    calls.push({ model: 'art', filter, update, options });
     return { acknowledged: true, modifiedCount: 2 };
   };
 
@@ -28,8 +28,8 @@ test('resetScope clears day hit counters for vod and art', async () => {
   }
 
   assert.deepEqual(calls, [
-    { model: 'vod', filter: {}, update: { $set: { hitsDay: 0 } } },
-    { model: 'art', filter: {}, update: { $set: { hitsDay: 0 } } }
+    { model: 'vod', filter: {}, update: { $set: { hitsDay: 0 } }, options: { timestamps: false } },
+    { model: 'art', filter: {}, update: { $set: { hitsDay: 0 } }, options: { timestamps: false } }
   ]);
 });
 
@@ -38,12 +38,12 @@ test('resetScope supports week and month counters', async () => {
   const originalArtUpdateMany = Art.updateMany;
   const calls = [];
 
-  Vod.updateMany = async (filter, update) => {
-    calls.push({ model: 'vod', filter, update });
+  Vod.updateMany = async (filter, update, options) => {
+    calls.push({ model: 'vod', filter, update, options });
     return { acknowledged: true, modifiedCount: 1 };
   };
-  Art.updateMany = async (filter, update) => {
-    calls.push({ model: 'art', filter, update });
+  Art.updateMany = async (filter, update, options) => {
+    calls.push({ model: 'art', filter, update, options });
     return { acknowledged: true, modifiedCount: 1 };
   };
 
@@ -56,10 +56,10 @@ test('resetScope supports week and month counters', async () => {
   }
 
   assert.deepEqual(calls, [
-    { model: 'vod', filter: {}, update: { $set: { hitsWeek: 0 } } },
-    { model: 'art', filter: {}, update: { $set: { hitsWeek: 0 } } },
-    { model: 'vod', filter: {}, update: { $set: { hitsMonth: 0 } } },
-    { model: 'art', filter: {}, update: { $set: { hitsMonth: 0 } } }
+    { model: 'vod', filter: {}, update: { $set: { hitsWeek: 0 } }, options: { timestamps: false } },
+    { model: 'art', filter: {}, update: { $set: { hitsWeek: 0 } }, options: { timestamps: false } },
+    { model: 'vod', filter: {}, update: { $set: { hitsMonth: 0 } }, options: { timestamps: false } },
+    { model: 'art', filter: {}, update: { $set: { hitsMonth: 0 } }, options: { timestamps: false } }
   ]);
 });
 

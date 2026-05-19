@@ -17,8 +17,8 @@ class HitStatsService {
 
     const update = { $set: { [field]: 0 } };
     const [vodResult, artResult] = await Promise.all([
-      Vod.updateMany({}, update),
-      Art.updateMany({}, update)
+      Vod.updateMany({}, update, { timestamps: false }),
+      Art.updateMany({}, update, { timestamps: false })
     ]);
 
     return {

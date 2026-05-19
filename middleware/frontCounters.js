@@ -22,7 +22,8 @@ function frontCounterMiddleware(req, res, next) {
 
   Vod.updateOne(
     { _id: { $in: buildMixedIdCandidates(vodId) } },
-    { $inc: { hits: 1, hitsDay: 1, hitsWeek: 1, hitsMonth: 1 } }
+    { $inc: { hits: 1, hitsDay: 1, hitsWeek: 1, hitsMonth: 1 } },
+    { timestamps: false }
   ).exec().catch((error) => {
     console.error('Detail hit counter update error:', error.message);
   });

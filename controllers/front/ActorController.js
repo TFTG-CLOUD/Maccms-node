@@ -15,7 +15,11 @@ class ActorController {
     if (!id) return res.status(404).render('error', { message: '参数错误' });
     const actor = await Actor.findById(id).lean();
     if (!actor) return res.status(404).render('error', { message: '演员不存在' });
-    Actor.updateOne({ _id: actor._id }, { $inc: { hits: 1 } }).exec();
+    Actor.updateOne(
+      { _id: actor._id },
+      { $inc: { hits: 1 } },
+      { timestamps: false }
+    ).exec();
     res.render('actor/detail', { maccms: config, obj: actor, actor, param: req.mac.params, seo: { title: actor.name + ' - ' + config.siteName, keywords: actor.name, description: (actor.content || '').substring(0, 200) } });
   }
 }

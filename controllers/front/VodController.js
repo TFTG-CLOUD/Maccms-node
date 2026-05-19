@@ -7,6 +7,7 @@ const {
   buildVodShowFilter,
   buildVodShowBasePath,
   buildVodShowPath,
+  buildSearchPagePath,
   buildVodRatingMeta,
   buildPlaylistSections,
   buildMixedTypeCandidates,
@@ -348,7 +349,11 @@ class VodController {
     if (hasMore) list = list.slice(0, pagesize);
     const total = (page - 1) * pagesize + list.length + (hasMore ? 1 : 0);
     const totalPages = hasMore ? page + 1 : page;
-    const pageNav = buildPageNav(req.path.replace(/page\/\d+/, '').replace(/\.html$/, '').replace(/\/$/, '') + '/', page, totalPages);
+    const pageNav = {
+      ...buildPageNav('', page, totalPages),
+      mode: 'query',
+      buildHref: (targetPage) => buildSearchPagePath(wd, targetPage)
+    };
 
     res.render('stui/vod/search', {
       maccms: config,

@@ -282,6 +282,20 @@ function buildVodShowBasePath(typeId, params = {}) {
   return buildVodShowPath(typeId, params).replace(/\.html$/, '/');
 }
 
+function buildSearchPagePath(keyword, page = 1) {
+  const safePage = Math.max(1, Number(page) || 1);
+  const encodedKeyword = encodeURIComponent(String(keyword || '').trim());
+  let path = safePage > 1
+    ? `/vod/search/page/${safePage}.html`
+    : '/vod/search.html';
+
+  if (config.urlMode === 'pathinfo') {
+    path = `/index.php${path}`;
+  }
+
+  return `${path}?wd=${encodedKeyword}`;
+}
+
 function formatDisplayScore(value) {
   const num = Number(value);
   if (!Number.isFinite(num) || num <= 0) return '';
@@ -466,6 +480,7 @@ module.exports = {
   buildVodRatingMeta,
   buildVodShowFilter,
   buildVodShowBasePath,
+  buildSearchPagePath,
   buildVodShowPath,
   decodeUnicodeText,
   findOneByMixedId,

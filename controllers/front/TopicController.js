@@ -16,7 +16,11 @@ class TopicController {
     if (!id) return res.status(404).render('error', { message: '参数错误' });
     const topic = await Topic.findById(id).populate('relVods relArts').lean();
     if (!topic) return res.status(404).render('error', { message: '专题不存在' });
-    Topic.updateOne({ _id: topic._id }, { $inc: { hits: 1 } }).exec();
+    Topic.updateOne(
+      { _id: topic._id },
+      { $inc: { hits: 1 } },
+      { timestamps: false }
+    ).exec();
     const normalizedTopic = normalizeMediaEntity(topic);
     res.render('stui/topic/detail', { maccms: config, obj: normalizedTopic, topic: normalizedTopic, param: req.mac.params, seo: { title: topic.name + ' - ' + config.siteName, keywords: topic.name, description: (topic.content || '').substring(0, 200) } });
   }

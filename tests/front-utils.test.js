@@ -12,6 +12,7 @@ const {
   getVodLetterOptions,
   normalizePicUrl,
   splitFilterValues,
+  buildSearchPagePath,
   buildVodShowPath,
   resolveTypeSelection,
   selectNavTypes
@@ -53,6 +54,24 @@ test('buildVodShowPath adds /index.php prefix in pathinfo mode', () => {
   } finally {
     config.urlMode = previous;
   }
+});
+
+test('buildSearchPagePath preserves wd query across pagination in clean and pathinfo modes', () => {
+  const previous = config.urlMode;
+
+  config.urlMode = 'clean';
+  assert.equal(
+    buildSearchPagePath('和平', 2),
+    '/vod/search/page/2.html?wd=%E5%92%8C%E5%B9%B3'
+  );
+
+  config.urlMode = 'pathinfo';
+  assert.equal(
+    buildSearchPagePath('和平', 2),
+    '/index.php/vod/search/page/2.html?wd=%E5%92%8C%E5%B9%B3'
+  );
+
+  config.urlMode = previous;
 });
 
 test('buildVodShowFilter supports legacy year strings, area aliases and digit letters', () => {

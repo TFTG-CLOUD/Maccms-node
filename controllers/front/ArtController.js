@@ -9,7 +9,11 @@ class ArtController {
     if (!id) return res.status(404).render('error', { message: '参数错误' });
     const art = await Art.findById(id).populate('type').lean();
     if (!art || art.status !== 1) return res.status(404).render('error', { message: '文章不存在' });
-    Art.updateOne({ _id: art._id }, { $inc: { hits: 1, hitsDay: 1, hitsWeek: 1, hitsMonth: 1 } }).exec();
+    Art.updateOne(
+      { _id: art._id },
+      { $inc: { hits: 1, hitsDay: 1, hitsWeek: 1, hitsMonth: 1 } },
+      { timestamps: false }
+    ).exec();
     const seoTemplates = res.locals.seoSettings || config.seo;
     res.render(art.tpl || 'art/detail', {
       maccms: config, obj: art, art, param: req.mac.params,

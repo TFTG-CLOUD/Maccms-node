@@ -98,8 +98,9 @@ block extraHead
     .player-shell__overlay.is-loading .player-shell__loading {
       display: inline-flex;
     }
-    .player-shell__overlay.is-loading .player-shell__tips {
-      color: rgba(255, 255, 255, 0.78);
+    .player-shell__overlay.is-loading .player-shell__tips,
+    .player-shell__overlay.is-loading .player-shell__button {
+      display: none;
     }
     .player-shell__spinner {
       width: 18px;
@@ -599,7 +600,7 @@ block content
           window.clearTimeout(loadingTimer);
           loadingTimer = window.setTimeout(function() {
             if (!shell.classList.contains('is-ready')) {
-              showPlayerError('视频加载时间较长，请稍候或点击重试。');
+              showPlayerError('视频加载时间较长，请重试或下方切换播放源');
             }
           }, 15000);
         } else {
@@ -682,6 +683,20 @@ block content
         return video;
       }
 
+      function bindVideoReady(video) {
+        if (!video) return;
+        var resolved = false;
+        var finish = function() {
+          if (resolved) return;
+          resolved = true;
+          markReady();
+        };
+        video.addEventListener('playing', finish, { once: true });
+        video.addEventListener('canplay', function() {
+          window.setTimeout(finish, 120);
+        }, { once: true });
+      }
+
       function mountPlayer() {
         if (mounted || !mount) return;
         decodedPayload = decodePlayerPayload(playerPayload);
@@ -700,13 +715,11 @@ block content
 
         var video = buildVideo();
         mount.appendChild(video);
+        bindVideoReady(video);
 
         if (decodedPayload.hls) {
           if (video.canPlayType('application/vnd.apple.mpegurl')) {
             video.src = decodedPayload.url;
-            video.addEventListener('loadedmetadata', function() {
-              markReady();
-            }, { once: true });
             video.play && video.play().catch(function() {});
             return;
           }
@@ -715,7 +728,6 @@ block content
             hls.loadSource(decodedPayload.url);
             hls.attachMedia(video);
             hls.on(window.Hls.Events.MANIFEST_PARSED, function() {
-              markReady();
               video.play && video.play().catch(function() {});
             });
             hls.on(window.Hls.Events.ERROR, function(event, data) {
@@ -733,9 +745,6 @@ block content
         source.src = decodedPayload.url;
         source.type = decodedPayload.mime || 'video/mp4';
         video.appendChild(source);
-        video.addEventListener('loadedmetadata', function() {
-          markReady();
-        }, { once: true });
         video.load();
         video.play && video.play().catch(function() {});
       }

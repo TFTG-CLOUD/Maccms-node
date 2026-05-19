@@ -16,12 +16,13 @@ mixin vodBoxRank(vod, index)
 
 mixin page(paging)
   if paging && paging.totalPages > 1
+    - const pageHref = typeof paging.buildHref === 'function' ? paging.buildHref : (targetPage) => paging.baseUrl + "page/" + targetPage + ".html"
     ul.stui-page.text-center.clearfix
-      li: a(href=paging.baseUrl + "page/1.html") 首页
-      li: a(href=paging.baseUrl + "page/" + paging.prev + ".html") 上一页
+      li: a(href=pageHref(1)) 首页
+      li: a(href=pageHref(paging.prev)) 上一页
       each num in paging.nums
-        li.hidden-xs(class=(paging.current == num ? 'active' : '')): a(href=paging.baseUrl + "page/" + num + ".html")= num
+        li.hidden-xs(class=(paging.current == num ? 'active' : '')): a(href=pageHref(num))= num
       li.hidden-xs.page-item: span.num #{paging.current}/#{paging.totalPages}
       li.active.visible-xs: span.num #{paging.current}/#{paging.totalPages}
-      li: a(href=paging.baseUrl + "page/" + paging.next + ".html") 下一页
-      li: a(href=paging.baseUrl + "page/" + paging.totalPages + ".html") 尾页
+      li: a(href=pageHref(paging.next)) 下一页
+      li: a(href=pageHref(paging.totalPages)) 尾页

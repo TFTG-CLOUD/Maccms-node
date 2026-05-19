@@ -11,7 +11,7 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 const http = require('http');
-const { uploadBufferToCdn, isCdnUploadEnabled } = require('../utils/cdnUpload');
+const { uploadBufferToCdn, isCdnUploadEnabled, isManagedCdnUrl } = require('../utils/cdnUpload');
 const {
   DEFAULT_FILTER_ALIAS_SETTINGS,
   applyVodFilterMetadata,
@@ -214,6 +214,11 @@ function hasVodChanges(existingVod, nextVod) {
 
 function pickPreferredString(incoming, existing) {
   return hasMeaningfulValue(incoming) ? String(incoming).trim() : String(existing || '').trim();
+}
+
+function shouldPreserveExistingPoster(existingPic, incomingPic) {
+  if (!isManagedCdnUrl(existingPic)) return false;
+  return hasMeaningfulValue(incomingPic);
 }
 
 function pickPreferredNumber(incoming, existing) {
@@ -632,16 +637,27 @@ class CollectEngine {
         };
       });
 
+      const existingVodMap = await this.findExistingVods(prepared.map((entry) => entry.vodData));
+      const preparedWithExisting = prepared.map((entry) => ({
+        ...entry,
+        existingVod: this.resolveExistingVod(entry.vodData, existingVodMap)
+      }));
+
       if (typeof options.onStatus === 'function') {
         await options.onStatus({
-          message: `正在处理图片，当前 ${prepared.length} 条`,
-          log: `开始处理图片 ${prepared.length} 条`
+          message: `正在处理图片，当前 ${preparedWithExisting.length} 条`,
+          log: `开始处理图片 ${preparedWithExisting.length} 条`
         });
       }
       await mapWithConcurrency(
-        prepared,
+        preparedWithExisting,
         Number(options.imageConcurrency) || DEFAULT_IMAGE_CONCURRENCY,
         async (entry) => {
+          if (shouldPreserveExistingPoster(entry.existingVod?.pic, entry.vodData.pic)) {
+            entry.vodData.pic = String(entry.existingVod.pic || '').trim();
+            return;
+          }
+
           if (entry.vodData.pic && entry.vodData.pic.startsWith('http')) {
             try {
               const downloadResult = await downloadImageWithRetry(entry.vodData.pic);
@@ -672,14 +688,12 @@ class CollectEngine {
 
       if (typeof options.onStatus === 'function') {
         await options.onStatus({
-          message: `正在入库，当前 ${prepared.length} 条`,
-          log: `开始入库 ${prepared.length} 条`
+          message: `正在入库，当前 ${preparedWithExisting.length} 条`,
+          log: `开始入库 ${preparedWithExisting.length} 条`
         });
       }
-      const existingVodMap = await this.findExistingVods(prepared.map((entry) => entry.vodData));
-
-      for (const entry of prepared) {
-        const existingVod = this.resolveExistingVod(entry.vodData, existingVodMap);
+      for (const entry of preparedWithExisting) {
+        const existingVod = entry.existingVod;
         let action = 'created';
 
         if (existingVod) {
@@ -824,7 +838,9 @@ class CollectEngine {
       actor: pickPreferredString(incomingVod.actor, existingVod.actor),
       director: pickPreferredString(incomingVod.director, existingVod.director),
       writer: pickPreferredString(incomingVod.writer, existingVod.writer),
-      pic: pickPreferredString(incomingVod.pic, existingVod.pic),
+      pic: shouldPreserveExistingPoster(existingVod.pic, incomingVod.pic)
+        ? pickPreferredString(existingVod.pic, incomingVod.pic)
+        : pickPreferredString(incomingVod.pic, existingVod.pic),
       content: pickPreferredString(incomingVod.content, existingVod.content),
       playUrls: mergePlayUrls(existingVod.playUrls || [], incomingVod.playUrls || []),
       downUrls: mergePlayUrls(existingVod.downUrls || [], incomingVod.downUrls || []),
@@ -1031,6 +1047,7 @@ collectEngine.ensureVodPicture = ensureVodPicture;
 collectEngine.ensureVodDocumentId = ensureVodDocumentId;
 collectEngine.mergePlayUrls = mergePlayUrls;
 collectEngine.hasVodChanges = hasVodChanges;
+collectEngine.mergeVodData = collectEngine.mergeVodData.bind(collectEngine);
 collectEngine.extractTypesFromItems = extractTypesFromItems;
 collectEngine.normalizeTopLevelJsonTypes = normalizeTopLevelJsonTypes;
 collectEngine.normalizeXmlTopLevelTypes = normalizeXmlTopLevelTypes;

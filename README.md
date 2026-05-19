@@ -136,6 +136,11 @@ FRONT_NAV_CACHE_TIME=600
 FRONT_HOME_CACHE_TIME=120
 ENABLE_HTTP_COMPRESSION=false
 
+CDN_UPLOAD_BASE_URL=https://cdn.wmdb.tv
+CDN_UPLOAD_API_KEY=
+CDN_UPLOAD_API_SECRET=
+CDN_PUBLIC_URL_PREFIXES=
+
 ENABLE_CRON=true
 
 ADMIN_INIT_NAME=admin
@@ -224,12 +229,24 @@ http://localhost:3000/admin/login
 | `URL_MODE` | 路由模式，`clean` 或 `pathinfo` |
 | `CACHE_ENABLE` | 是否启用页面缓存，`true` 时开启 |
 | `ENABLE_HTTP_COMPRESSION` | 是否在 Node 进程内启用 `compression()`，默认 `false`，建议交给 Caddy/Nginx |
+| `CDN_UPLOAD_BASE_URL` | CDN 上传服务地址，同时也是默认的受管 CDN URL 前缀之一 |
+| `CDN_UPLOAD_API_KEY` | CDN 上传 API Key |
+| `CDN_UPLOAD_API_SECRET` | CDN 上传 API Secret |
+| `CDN_PUBLIC_URL_PREFIXES` | 额外的受管 CDN 图片 URL 前缀，多个用英文逗号分隔，用于识别“这张海报已经是 CDN 海报” |
 | `FRONT_ACCESS_LOG` | 是否开启前台路由访问日志，默认 `true`，输出 IP、路径、状态码和响应时延 |
 | `PAGE_CACHE_TTL_MS` | 页面缓存 TTL，默认 `3600000` 毫秒 |
 | `DETAIL_PAGE_CACHE_TTL_MS` | `vod/detail` 页面缓存 TTL，默认 `60000` 毫秒 |
 | `PLAY_PAGE_CACHE_TTL_MS` | `vod/play` 页面缓存 TTL，默认 `60000` 毫秒 |
 | `PAGE_CACHE_MAX_ENTRIES` | 页面缓存最大条目数，默认 `500` |
 | `RUNTIME_CACHE_MAX_ENTRIES` | 运行时缓存最大条目数，默认 `300` |
+| `CACHE_CLEANUP_INTERVAL_MS` | 缓存清理周期，默认 `60000` 毫秒 |
+| `VOD_COUNT_CACHE_TTL_MS` | 分类页和筛选页计数缓存毫秒数，默认 `30000` |
+| `VOD_SHOW_LIST_CACHE_TTL_MS` | `vod/show` 列表结果缓存毫秒数，默认 `15000` |
+| `FRONT_NAV_CACHE_TIME` | 前台导航缓存秒数 |
+| `FRONT_HOME_CACHE_TIME` | 首页区块缓存秒数 |
+| `ENABLE_CRON` | 是否启用定时任务轮询 |
+| `QR_TARGET_URL` | 二维码目标地址 |
+| `ADMIN_INIT_*` | 初始化管理员账号信息 |
 
 ### `PLAYER_PAYLOAD_SECRET` 要不要设置
 
@@ -239,14 +256,27 @@ http://localhost:3000/admin/login
 - 它和 `SESSION_SECRET` 已经完全隔离，不会再互相兜底
 - 如果你不设置，系统会使用内置默认值，功能仍然可用
 - 但生产环境最好单独配置一个随机字符串，避免所有站点都使用同一默认混淆 key
-| `CACHE_CLEANUP_INTERVAL_MS` | 缓存清理周期，默认 `60000` 毫秒 |
-| `VOD_COUNT_CACHE_TTL_MS` | 分类页和筛选页计数缓存毫秒数，默认 `30000` |
-| `VOD_SHOW_LIST_CACHE_TTL_MS` | `vod/show` 列表结果缓存毫秒数，默认 `15000` |
-| `FRONT_NAV_CACHE_TIME` | 前台导航缓存秒数 |
-| `FRONT_HOME_CACHE_TIME` | 首页区块缓存秒数 |
-| `ENABLE_CRON` | 是否启用定时任务轮询 |
-| `QR_TARGET_URL` | 二维码目标地址 |
-| `ADMIN_INIT_*` | 初始化管理员账号信息 |
+
+### CDN 海报识别与保留
+
+采集更新时，系统会先判断数据库里现有海报是不是“受管 CDN 海报”。
+
+- 如果现有海报 URL 以 `CDN_UPLOAD_BASE_URL` 开头，会视为受管 CDN 海报
+- 如果现有海报 URL 以 `CDN_PUBLIC_URL_PREFIXES` 里的任一前缀开头，也会视为受管 CDN 海报
+- 一旦识别为受管 CDN 海报，后续采集老视频时即使远程源带了新 `pic`，默认也会保留当前 CDN 海报，不再重复下载和替换
+
+示例:
+
+```env
+CDN_UPLOAD_BASE_URL=https://cdn-api.example.com
+CDN_PUBLIC_URL_PREFIXES=https://img.example.com,https://static.examplecdn.com/poster
+```
+
+上面这种配置下，以下 URL 都会被识别为受管 CDN 海报:
+
+- `https://cdn-api.example.com/uploads/demo.jpg`
+- `https://img.example.com/posters/demo.jpg`
+- `https://static.examplecdn.com/poster/2026/05/demo.webp`
 
 ## 筛选关键词标准化
 

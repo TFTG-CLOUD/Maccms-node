@@ -6,11 +6,38 @@ function getBaseUrl() {
   return String(process.env.CDN_UPLOAD_BASE_URL || DEFAULT_BASE_URL).trim().replace(/\/+$/, '');
 }
 
+function normalizeUrlPrefix(value) {
+  return String(value || '').trim().replace(/\/+$/, '');
+}
+
+function getManagedCdnUrlPrefixes() {
+  const prefixes = new Set();
+  const baseUrl = normalizeUrlPrefix(process.env.CDN_UPLOAD_BASE_URL || DEFAULT_BASE_URL);
+  if (baseUrl) {
+    prefixes.add(baseUrl);
+  }
+
+  String(process.env.CDN_PUBLIC_URL_PREFIXES || '')
+    .split(',')
+    .map((item) => normalizeUrlPrefix(item))
+    .filter(Boolean)
+    .forEach((item) => prefixes.add(item));
+
+  return [...prefixes];
+}
+
 function isCdnUploadEnabled() {
   return Boolean(
     String(process.env.CDN_UPLOAD_API_KEY || '').trim()
     && String(process.env.CDN_UPLOAD_API_SECRET || '').trim()
   );
+}
+
+function isManagedCdnUrl(url) {
+  const target = String(url || '').trim();
+  if (!/^https?:\/\//i.test(target)) return false;
+
+  return getManagedCdnUrlPrefixes().some((prefix) => target.startsWith(prefix));
 }
 
 function getApiHeaders(extraHeaders = {}) {
@@ -95,6 +122,8 @@ async function uploadBufferToCdn({ filename, buffer, contentType = 'image/jpeg',
 module.exports = {
   buildUrl,
   getBaseUrl,
+  getManagedCdnUrlPrefixes,
   isCdnUploadEnabled,
+  isManagedCdnUrl,
   uploadBufferToCdn
 };

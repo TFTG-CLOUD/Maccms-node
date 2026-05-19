@@ -3,7 +3,9 @@ const assert = require('node:assert/strict');
 
 const {
   buildUrl,
+  getManagedCdnUrlPrefixes,
   isCdnUploadEnabled,
+  isManagedCdnUrl,
   uploadBufferToCdn
 } = require('../utils/cdnUpload');
 
@@ -35,6 +37,27 @@ test('buildUrl prefixes relative upload api path with CDN base url', () => {
   assert.equal(buildUrl('https://other.example.com/demo.jpg'), 'https://other.example.com/demo.jpg');
 
   process.env.CDN_UPLOAD_BASE_URL = originalBaseUrl;
+});
+
+test('managed CDN url detection supports upload base and extra public prefixes', () => {
+  const originalBaseUrl = process.env.CDN_UPLOAD_BASE_URL;
+  const originalPublicPrefixes = process.env.CDN_PUBLIC_URL_PREFIXES;
+
+  process.env.CDN_UPLOAD_BASE_URL = 'https://cdn.example.com/';
+  process.env.CDN_PUBLIC_URL_PREFIXES = 'https://img.example.com, https://cdn2.example.com/path/';
+
+  assert.deepEqual(getManagedCdnUrlPrefixes(), [
+    'https://cdn.example.com',
+    'https://img.example.com',
+    'https://cdn2.example.com/path'
+  ]);
+  assert.equal(isManagedCdnUrl('https://cdn.example.com/internal/demo.jpg'), true);
+  assert.equal(isManagedCdnUrl('https://img.example.com/posters/demo.jpg'), true);
+  assert.equal(isManagedCdnUrl('https://cdn2.example.com/path/demo.jpg'), true);
+  assert.equal(isManagedCdnUrl('https://other.example.com/demo.jpg'), false);
+
+  process.env.CDN_UPLOAD_BASE_URL = originalBaseUrl;
+  process.env.CDN_PUBLIC_URL_PREFIXES = originalPublicPrefixes;
 });
 
 test('uploadBufferToCdn uploads through signed url flow and returns public url', async () => {

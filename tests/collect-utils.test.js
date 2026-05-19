@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const http = require('http');
 const { Readable } = require('node:stream');
 
+const collectEngine = require('../services/CollectEngine');
 const {
   DEFAULT_POSTER_PATH,
   ensureVodPicture,
@@ -14,7 +15,7 @@ const {
   downloadImageWithRetry,
   normalizeCollectRange,
   normalizeTopLevelJsonTypes
-} = require('../services/CollectEngine');
+} = collectEngine;
 
 test('normalizeCollectRange supports 1day 2day today week month all', () => {
   assert.deepEqual(normalizeCollectRange('today'), { key: 'today', hours: 24 });
@@ -253,4 +254,36 @@ test('downloadImageWithRetry returns CDN url when CDN upload is enabled', async 
 
   assert.equal(result.path, 'https://img.example.com/poster.jpg');
   assert.equal(result.usedFallback, false);
+});
+
+test('mergeVodData keeps an existing managed CDN poster instead of replacing it during updates', () => {
+  const previousBaseUrl = process.env.CDN_UPLOAD_BASE_URL;
+  const previousPublicPrefixes = process.env.CDN_PUBLIC_URL_PREFIXES;
+
+  process.env.CDN_UPLOAD_BASE_URL = 'https://cdn.example.com';
+  process.env.CDN_PUBLIC_URL_PREFIXES = 'https://img.example.com';
+
+  const merged = collectEngine.mergeVodData({
+    name: '测试影片',
+    pic: 'https://img.example.com/posters/current.jpg',
+    playUrls: [],
+    downUrls: [],
+    tags: [],
+    status: 1,
+    hits: 0,
+    hitsDay: 0,
+    hitsWeek: 0,
+    hitsMonth: 0
+  }, {
+    name: '测试影片',
+    pic: 'https://remote-source.example.com/posters/new.jpg',
+    playUrls: [],
+    downUrls: [],
+    tags: []
+  });
+
+  process.env.CDN_UPLOAD_BASE_URL = previousBaseUrl;
+  process.env.CDN_PUBLIC_URL_PREFIXES = previousPublicPrefixes;
+
+  assert.equal(merged.pic, 'https://img.example.com/posters/current.jpg');
 });

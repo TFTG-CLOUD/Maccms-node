@@ -11,6 +11,7 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 const http = require('http');
+const { uploadBufferToCdn, isCdnUploadEnabled } = require('../utils/cdnUpload');
 const {
   DEFAULT_FILTER_ALIAS_SETTINGS,
   applyVodFilterMetadata,
@@ -353,7 +354,7 @@ function downloadImageOnce(imgUrl) {
     const filePath = path.join(UPLOAD_DIR, filename);
     const relativePath = '/upload/vod/' + filename;
 
-    if (fs.existsSync(filePath)) return resolve({ path: relativePath, error: '' });
+    if (!isCdnUploadEnabled() && fs.existsSync(filePath)) return resolve({ path: relativePath, error: '' });
 
     const proto = imgUrl.startsWith('https') ? https : http;
     proto.get(imgUrl, { timeout: 15000 }, (res) => {
@@ -362,15 +363,32 @@ function downloadImageOnce(imgUrl) {
         return resolve({ path: '', error: `http status ${res.statusCode}` });
       }
 
-      const file = fs.createWriteStream(filePath);
-      res.pipe(file);
-      file.on('finish', () => {
-        file.close();
-        resolve({ path: relativePath, error: '' });
+      const chunks = [];
+      res.on('data', (chunk) => chunks.push(chunk));
+      res.on('end', async () => {
+        try {
+          const buffer = Buffer.concat(chunks);
+          const contentType = String(res.headers['content-type'] || '').trim() || 'image/jpeg';
+          if (isCdnUploadEnabled()) {
+            const cdnUrl = await uploadBufferToCdn({
+              filename,
+              buffer,
+              contentType,
+              isPublic: true
+            });
+            return resolve({ path: cdnUrl, error: '' });
+          }
+
+          const file = fs.createWriteStream(filePath);
+          file.end(buffer, () => resolve({ path: relativePath, error: '' }));
+          file.on('error', () => {
+            fs.rm(filePath, { force: true }, () => resolve({ path: '', error: 'write file error' }));
+          });
+        } catch (error) {
+          resolve({ path: '', error: error.message || 'image upload error' });
+        }
       });
-      file.on('error', () => {
-        fs.rm(filePath, { force: true }, () => resolve({ path: '', error: 'write file error' }));
-      });
+      res.on('error', (error) => resolve({ path: '', error: error.message || 'response error' }));
     }).on('error', (error) => resolve({ path: '', error: error.message || 'request error' }))
       .on('timeout', function handleTimeout() {
         this.destroy(new Error('timeout'));

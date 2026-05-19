@@ -1,5 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const http = require('http');
 
 const {
   DEFAULT_POSTER_PATH,
@@ -9,6 +10,7 @@ const {
   hasVodChanges,
   buildCollectRunOptions,
   buildCollectUrlHash,
+  downloadImageWithRetry,
   normalizeCollectRange,
   normalizeTopLevelJsonTypes
 } = require('../services/CollectEngine');
@@ -175,4 +177,66 @@ test('ensureVodPicture falls back to the default poster when picture is missing'
   assert.equal(ensureVodPicture(''), DEFAULT_POSTER_PATH);
   assert.equal(ensureVodPicture(null), DEFAULT_POSTER_PATH);
   assert.equal(ensureVodPicture('/upload/vod/demo.jpg'), '/upload/vod/demo.jpg');
+});
+
+test('downloadImageWithRetry returns CDN url when CDN upload is enabled', async (t) => {
+  const originalKey = process.env.CDN_UPLOAD_API_KEY;
+  const originalSecret = process.env.CDN_UPLOAD_API_SECRET;
+  const originalBaseUrl = process.env.CDN_UPLOAD_BASE_URL;
+  const originalFetch = globalThis.fetch;
+  const originalFormData = globalThis.FormData;
+
+  process.env.CDN_UPLOAD_API_KEY = 'demo-key';
+  process.env.CDN_UPLOAD_API_SECRET = 'demo-secret';
+  process.env.CDN_UPLOAD_BASE_URL = 'https://cdn.example.com';
+
+  class MockFormData {
+    constructor() {
+      this.entries = [];
+    }
+
+    set(name, value, filename) {
+      this.entries.push({ name, value, filename });
+    }
+  }
+
+  globalThis.FormData = MockFormData;
+  globalThis.fetch = async (url) => {
+    if (String(url).endsWith('/api/upload/generate-signed-url')) {
+      return {
+        ok: true,
+        json: async () => ({ uploadUrl: '/api/upload/direct/poster' })
+      };
+    }
+    return {
+      ok: true,
+      json: async () => ({
+        url: 'https://cdn.example.com/internal/poster.jpg',
+        publicUrl: 'https://img.example.com/poster.jpg'
+      })
+    };
+  };
+
+  const server = http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'image/jpeg' });
+    res.end(Buffer.from('fake-image-content'));
+  });
+
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const address = server.address();
+  const imageUrl = `http://127.0.0.1:${address.port}/poster.jpg`;
+
+  t.after(async () => {
+    await new Promise((resolve) => server.close(resolve));
+    process.env.CDN_UPLOAD_API_KEY = originalKey;
+    process.env.CDN_UPLOAD_API_SECRET = originalSecret;
+    process.env.CDN_UPLOAD_BASE_URL = originalBaseUrl;
+    globalThis.fetch = originalFetch;
+    globalThis.FormData = originalFormData;
+  });
+
+  const result = await downloadImageWithRetry(imageUrl);
+
+  assert.equal(result.path, 'https://img.example.com/poster.jpg');
+  assert.equal(result.usedFallback, false);
 });

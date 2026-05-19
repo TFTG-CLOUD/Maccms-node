@@ -1,7 +1,7 @@
 const config = require('../../config');
 const Vod = require('../../models/Vod');
 const Type = require('../../models/Type');
-const { seoReplace, sanitizePlainText } = require('../../utils/helpers');
+const { seoReplace, sanitizePlainText, encodePlayerPayload } = require('../../utils/helpers');
 const { macUrl } = require('../../utils/urlHelper');
 const {
   buildVodShowFilter,
@@ -252,6 +252,14 @@ class VodController {
     const prevEpisode = episodeIndex > 0 ? currentEpisodes[episodeIndex - 1] : null;
     const nextEpisode = episodeIndex < currentEpisodes.length - 1 ? currentEpisodes[episodeIndex + 1] : null;
     const playerSource = buildPlayerSource(episode.url);
+    const playerPayload = encodePlayerPayload({
+      kind: vod.copyright == 1 ? 'copyright' : (playerSource && playerSource.useVideo ? 'video' : 'iframe'),
+      url: vod.copyright == 1
+        ? `/static/player/banquan.html?url=${encodeURIComponent(episode ? episode.url : '')}`
+        : (playerSource ? playerSource.url : episode.url),
+      mime: playerSource && playerSource.useVideo ? (playerSource.mimeType || '') : '',
+      hls: Boolean(playerSource && playerSource.kind == 'hls' && playerSource.useVideo)
+    });
     const playlistSections = buildPlaylistSections(vod, { activeSid: serverIndex + 1, activeNid: episode.nid || (episodeIndex + 1) });
 
     const relatedVods = await Vod.find({
@@ -277,7 +285,7 @@ class VodController {
       },
       serverIndex,
       episodeIndex,
-      playerData: JSON.stringify({ url: episode.url }),
+      playerPayload,
       playerJs: '',
       relatedVods: normalizeMediaList(relatedVods),
       seo: {

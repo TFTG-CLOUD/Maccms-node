@@ -59,8 +59,45 @@ function md5(str) {
   return crypto.createHash('md5').update(str).digest('hex');
 }
 
+function xorBuffer(buffer, secret) {
+  const input = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
+  const key = Buffer.from(String(secret || ''), 'utf8');
+  if (!key.length) return Buffer.from(input);
+
+  const output = Buffer.allocUnsafe(input.length);
+  for (let index = 0; index < input.length; index += 1) {
+    output[index] = input[index] ^ key[index % key.length];
+  }
+  return output;
+}
+
+function getPlayerPayloadSecret() {
+  return String(process.env.PLAYER_PAYLOAD_SECRET || process.env.SESSION_SECRET || 'tanggui-player').trim();
+}
+
+function encodePlayerPayload(payload) {
+  const json = JSON.stringify(payload || {});
+  const base = Buffer.from(json, 'utf8').toString('base64');
+  return xorBuffer(Buffer.from(base, 'utf8'), getPlayerPayloadSecret()).toString('base64url');
+}
+
+function decodePlayerPayload(encoded) {
+  if (!encoded) return null;
+  const decoded = xorBuffer(Buffer.from(String(encoded), 'base64url'), getPlayerPayloadSecret()).toString('utf8');
+  return JSON.parse(Buffer.from(decoded, 'base64').toString('utf8'));
+}
+
 function capitalize(str) {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-module.exports = { pagination, seoReplace, md5, capitalize, stripHtml, sanitizePlainText };
+module.exports = {
+  pagination,
+  seoReplace,
+  md5,
+  capitalize,
+  stripHtml,
+  sanitizePlainText,
+  encodePlayerPayload,
+  decodePlayerPayload
+};

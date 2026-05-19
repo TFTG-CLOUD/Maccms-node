@@ -25,6 +25,92 @@ block extraHead
       color: #666;
       font-size: 14px;
     }
+    .player-shell {
+      position: relative;
+      overflow: hidden;
+      background: #000;
+      border-radius: 18px;
+    }
+    .player-shell::before {
+      content: "";
+      display: block;
+      padding-top: 56.25%;
+    }
+    .player-shell__poster,
+    .player-shell__overlay,
+    .player-shell__mount {
+      position: absolute;
+      inset: 0;
+    }
+    .player-shell__poster {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: brightness(0.48);
+      transform: scale(1.02);
+    }
+    .player-shell__overlay {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      padding: 24px;
+      background: linear-gradient(180deg, rgba(0, 0, 0, 0.18) 0%, rgba(0, 0, 0, 0.55) 100%);
+      text-align: center;
+      z-index: 2;
+    }
+    .player-shell__button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 156px;
+      min-height: 48px;
+      padding: 0 22px;
+      border: 0;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #ff9f1c 0%, #ff7a00 100%);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      box-shadow: 0 12px 30px rgba(255, 122, 0, 0.35);
+    }
+    .player-shell__button:disabled {
+      opacity: 0.7;
+    }
+    .player-shell__tips {
+      max-width: 520px;
+      color: rgba(255, 255, 255, 0.88);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+    .player-shell__mount {
+      z-index: 1;
+      background: #000;
+    }
+    .player-shell__mount video,
+    .player-shell__mount iframe {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: #000;
+    }
+    .player-shell.is-ready .player-shell__overlay,
+    .player-shell.is-ready .player-shell__poster {
+      display: none;
+    }
+    .player-shell__error {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 3;
+      padding: 12px 16px;
+      color: #fff;
+      background: rgba(0, 0, 0, 0.65);
+      font-size: 14px;
+    }
     .play-inline-ad {
       width: 100%;
       padding: 12px 14px;
@@ -223,6 +309,23 @@ block extraHead
       .play-toolbar__title {
         font-size: 18px;
       }
+      .player-shell {
+        border-radius: 14px;
+      }
+      .player-shell__overlay {
+        gap: 12px;
+        padding: 18px;
+      }
+      .player-shell__button {
+        min-width: 138px;
+        min-height: 44px;
+        padding: 0 18px;
+        font-size: 14px;
+      }
+      .player-shell__tips {
+        font-size: 12px;
+        line-height: 1.65;
+      }
       .play-inline-ad {
         padding: 10px 12px;
         font-size: 12px;
@@ -285,18 +388,20 @@ block content
       .stui-pannel-bd
         .stui-player.col-pd
           .stui-player__video.clearfix
-            if vod.copyright == 1
-              iframe.MacPlayer(width="100%" height="100%" src="/static/player/banquan.html?url=" + encodeURIComponent(episode ? episode.url : '') frameborder="0" border="0" marginwidth="0" marginheight="0" scrolling="no" allowfullscreen)
+            if episode
+              .MacPlayer.player-shell(
+                data-player-payload=playerPayload
+                data-player-poster=vod.pic || ''
+                data-player-title=vod.name || ''
+              )
+                if vod.pic
+                  img.player-shell__poster(src=vod.pic alt=vod.name || '播放封面' loading="eager" decoding="async")
+                .player-shell__overlay
+                  button.player-shell__button(type="button") 点击开始播放
+                  p.player-shell__tips 为减少手机浏览器自动转码、阅读模式和纯净播放器接管，播放器将在点击后加载。
+                .player-shell__mount
             else
-              if episode
-                .MacPlayer(style="position:relative;padding-bottom:56.25%;height:0;background:#000;overflow:hidden;")
-                  if playerSource && playerSource.useVideo
-                    video#macVideo(controls playsinline preload="metadata" poster=vod.pic style="position:absolute;inset:0;width:100%;height:100%;background:#000;" crossorigin="anonymous")
-                      source(src=playerSource.url type=playerSource.mimeType)
-                  else
-                    iframe(src=playerSource ? playerSource.url : episode.url style="position:absolute;inset:0;width:100%;height:100%;" frameborder="0" allowfullscreen)
-              else
-                p 暂无播放地址
+              p 暂无播放地址
           .stui-player__detail.detail.play-toolbar
             .play-toolbar__meta
               h1.play-toolbar__title
@@ -428,33 +533,133 @@ block content
         window.requestAnimationFrame(scrollActiveEpisodeIntoView);
       }
     })();
+  script.
+    (function() {
+      var shell = document.querySelector('.player-shell');
+      if (!shell) return;
 
-  if playerSource && playerSource.kind == 'hls'
-    script.
-      var video = document.getElementById('macVideo');
-      if (video) {
-        var playerUrl = '#{playerSource.url}';
-        var showPlayerError = function(message) {
-          if (!document.getElementById('playerError')) {
-            var errorBox = document.createElement('div');
-            errorBox.id = 'playerError';
-            errorBox.style.cssText = 'position:absolute;left:0;right:0;bottom:0;padding:12px 16px;color:#fff;background:rgba(0,0,0,.65);font-size:14px;z-index:2;';
-            errorBox.innerText = message;
-            video.parentNode.appendChild(errorBox);
+      var mount = shell.querySelector('.player-shell__mount');
+      var button = shell.querySelector('.player-shell__button');
+      var playerPayload = shell.getAttribute('data-player-payload') || '';
+      var playerPoster = shell.getAttribute('data-player-poster') || '';
+      var mounted = false;
+      var decodedPayload = null;
+
+      function decodePlayerPayload(value) {
+        if (!value) return null;
+        var secret = '#{(process.env.PLAYER_PAYLOAD_SECRET || process.env.SESSION_SECRET || "tanggui-player").replace(/\\/g, '\\\\').replace(/'/g, "\\'")}';
+        var xorText = function(input, key) {
+          if (!key) return input;
+          var output = '';
+          for (var index = 0; index < input.length; index += 1) {
+            output += String.fromCharCode(input.charCodeAt(index) ^ key.charCodeAt(index % key.length));
           }
+          return output;
         };
-        if (video.canPlayType('application/vnd.apple.mpegurl')) {
-          video.src = playerUrl;
-        } else if (window.Hls && window.Hls.isSupported()) {
-          var hls = new window.Hls();
-          hls.loadSource(playerUrl);
-          hls.attachMedia(video);
-          hls.on(window.Hls.Events.ERROR, function(event, data) {
-            if (data && data.fatal) {
-              showPlayerError('当前线路播放失败，请刷新或切换其他剧集/线路。');
-            }
-          });
-        } else {
-          showPlayerError('当前浏览器不支持该 HLS 播放，请尝试使用 Safari 或更新浏览器。');
+        try {
+          var base = atob(String(value).replace(/-/g, '+').replace(/_/g, '/'));
+          var restored = xorText(base, secret);
+          return JSON.parse(atob(restored));
+        } catch (error) {
+          return null;
         }
       }
+
+      function showPlayerError(message) {
+        var existed = shell.querySelector('.player-shell__error');
+        if (existed) {
+          existed.innerText = message;
+          return;
+        }
+        var errorBox = document.createElement('div');
+        errorBox.className = 'player-shell__error';
+        errorBox.innerText = message;
+        shell.appendChild(errorBox);
+      }
+
+      function buildIframe() {
+        var iframe = document.createElement('iframe');
+        iframe.setAttribute('frameborder', '0');
+        iframe.setAttribute('allowfullscreen', 'allowfullscreen');
+        iframe.setAttribute('scrolling', 'no');
+        iframe.src = decodedPayload.url;
+        return iframe;
+      }
+
+      function buildVideo() {
+        var video = document.createElement('video');
+        video.controls = true;
+        video.playsInline = true;
+        video.preload = 'metadata';
+        video.crossOrigin = 'anonymous';
+        video.setAttribute('playsinline', 'playsinline');
+        video.setAttribute('webkit-playsinline', 'true');
+        video.setAttribute('x5-playsinline', 'true');
+        video.setAttribute('x5-video-player-type', 'h5');
+        video.setAttribute('x5-video-player-fullscreen', 'false');
+        if (playerPoster) {
+          video.poster = playerPoster;
+        }
+        return video;
+      }
+
+      function mountPlayer() {
+        if (mounted || !mount) return;
+        decodedPayload = decodePlayerPayload(playerPayload);
+        if (!decodedPayload || !decodedPayload.url) {
+          showPlayerError('播放地址解析失败，请刷新页面后重试。');
+          return;
+        }
+        mounted = true;
+        mount.innerHTML = '';
+        shell.classList.add('is-ready');
+
+        if (decodedPayload.kind === 'iframe' || decodedPayload.kind === 'copyright') {
+          mount.appendChild(buildIframe());
+          return;
+        }
+
+        var video = buildVideo();
+        mount.appendChild(video);
+
+        if (decodedPayload.hls) {
+          if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = decodedPayload.url;
+            video.play && video.play().catch(function() {});
+            return;
+          }
+          if (window.Hls && window.Hls.isSupported()) {
+            var hls = new window.Hls();
+            hls.loadSource(decodedPayload.url);
+            hls.attachMedia(video);
+            hls.on(window.Hls.Events.MANIFEST_PARSED, function() {
+              video.play && video.play().catch(function() {});
+            });
+            hls.on(window.Hls.Events.ERROR, function(event, data) {
+              if (data && data.fatal) {
+                showPlayerError('当前线路播放失败，请刷新或切换其他剧集/线路。');
+              }
+            });
+            return;
+          }
+          showPlayerError('当前浏览器不支持该 HLS 播放，请尝试使用 Safari 或更新浏览器。');
+          return;
+        }
+
+        var source = document.createElement('source');
+        source.src = decodedPayload.url;
+        source.type = decodedPayload.mime || 'video/mp4';
+        video.appendChild(source);
+        video.load();
+        video.play && video.play().catch(function() {});
+      }
+
+      if (button) {
+        button.addEventListener('click', function() {
+          if (button.disabled) return;
+          button.disabled = true;
+          button.innerText = '加载中...';
+          mountPlayer();
+        }, { once: true });
+      }
+    })();

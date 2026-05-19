@@ -5,6 +5,12 @@ html
       meta(http-equiv="Content-Type" content="text/html; charset=utf-8")
       meta(name="renderer" content="webkit|ie-comp|ie-stand")
       meta(name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0")
+      meta(name="applicable-device" content="pc,mobile")
+      meta(http-equiv="Cache-Control" content="no-transform")
+      meta(http-equiv="Cache-Control" content="no-siteapp")
+      meta(name="format-detection" content="telephone=no")
+      meta(name="layoutmode" content="standard")
+      meta(name="imagemode" content="force")
       title #{seo ? seo.title : maccms.siteName}
       meta(name="keywords" content=seo ? seo.keywords || '' : '')
       meta(name="description" content=seo ? seo.description || '' : '')
@@ -89,6 +95,12 @@ html
           float: none;
           flex: 0 0 auto;
           white-space: nowrap;
+        }
+        .stui-screen__list.type-slide.flickity-enabled,
+        .stui-screen__list.type-slide.flickity-enabled .flickity-viewport,
+        .stui-screen__list.type-slide.flickity-enabled .flickity-slider {
+          height: auto;
+          min-height: 40px;
         }
       }
     script.

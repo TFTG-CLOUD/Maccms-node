@@ -1,7 +1,13 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { seoReplace, stripHtml, sanitizePlainText } = require('../utils/helpers');
+const {
+  seoReplace,
+  stripHtml,
+  sanitizePlainText,
+  encodePlayerPayload,
+  decodePlayerPayload
+} = require('../utils/helpers');
 
 test('seoReplace supports siteTitle placeholder for homepage seo', () => {
   const site = {
@@ -57,4 +63,18 @@ test('sanitizePlainText trims wrapped html content for detail summary', () => {
     sanitizePlainText('  <div><p> 第一行 </p><p>第二行&nbsp;</p></div>  '),
     '第一行 第二行'
   );
+});
+
+test('encodePlayerPayload obscures player url payload and remains decodable', () => {
+  const payload = {
+    kind: 'video',
+    url: 'https://cdn.example.com/demo/index.m3u8',
+    mime: 'application/vnd.apple.mpegurl',
+    hls: true
+  };
+
+  const encoded = encodePlayerPayload(payload);
+
+  assert.equal(encoded.includes(payload.url), false);
+  assert.deepEqual(decodePlayerPayload(encoded), payload);
 });

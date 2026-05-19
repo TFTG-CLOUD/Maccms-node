@@ -3,6 +3,7 @@ const router = express.Router();
 const macRouter = require('../middleware/macRouter');
 const { frontAccessLogMiddleware } = require('../middleware/frontAccessLog');
 const { frontContextMiddleware } = require('../middleware/frontContext');
+const { antiTransformMiddleware } = require('../middleware/antiTransform');
 const { createRateLimiter, getClientIpGroup } = require('../middleware/rateLimit');
 const RssController = require('../controllers/front/RssController');
 
@@ -92,6 +93,7 @@ router.get('/robots.txt', (req, res) => rssController.robots(req, res));
 router.get('/rss/index.xml', (req, res) => rssController.index(req, res));
 router.get('/index.php/rss/index.xml', (req, res) => rssController.index(req, res));
 
+router.use(antiTransformMiddleware);
 router.use(frontContextMiddleware);
 
 router.get('/index.php/:ctr/:act/*', macRouter, applyFrontPageRateLimit, applySearchRateLimit, dispatch);

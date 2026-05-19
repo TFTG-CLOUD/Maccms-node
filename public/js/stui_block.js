@@ -66,22 +66,39 @@ var stui = {
 			})
 		},
 		'slide': function() {
-			$(".type-slide").each(function(a) {
-				$index = $(this).find('.active').index()*1;
-				if($index > 3){
-					$index = $index-3;
-				}else{
-					$index = 0;
+			$(".type-slide").each(function() {
+				var $slide = $(this);
+				var isMobileViewport = window.matchMedia && window.matchMedia("(max-width: 767px)").matches;
+				var flickityInstance = $slide.data('flickity');
+
+				if (isMobileViewport) {
+					if (flickityInstance) {
+						$slide.flickity('destroy');
+					}
+					return;
 				}
-				$(this).flickity({
+
+				if (flickityInstance) {
+					flickityInstance.resize();
+					return;
+				}
+
+				var index = $slide.find('.active').index() * 1;
+				if (index > 3) {
+					index = index - 3;
+				} else {
+					index = 0;
+				}
+
+				$slide.flickity({
 					cellAlign: 'left',
 					freeScroll: true,
 					contain: true,
-					prevNextButtons: false,				
+					prevNextButtons: false,
 					pageDots: false,
-					initialIndex: $index
+					initialIndex: index
 				});
-			})
+			});
 		},
 		'mshare': function() {
 			$(".open-share").click(function() {

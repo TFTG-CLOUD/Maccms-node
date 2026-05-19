@@ -66,6 +66,19 @@ app.use('/upload', express.static(path.join(__dirname, 'public', 'upload'), {
 app.use('/js', express.static(path.join(__dirname, 'public', 'js'), { maxAge: STATIC_CACHE_MAX_AGE }));
 app.use('/css', express.static(path.join(__dirname, 'public', 'css'), { maxAge: STATIC_CACHE_MAX_AGE }));
 app.use('/images', express.static(path.join(__dirname, 'public', 'images'), { maxAge: STATIC_CACHE_MAX_AGE }));
+
+// 301 重定向: clean 模式下将 /index.php/* 永久重定向到 /* (不含 index.php)
+if (config.urlMode === 'clean') {
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/index.php')) {
+      const cleanPath = stripIndexPhp(req.path);
+      const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+      return res.redirect(301, cleanPath + query);
+    }
+    next();
+  });
+}
+
 app.use(frontCounterMiddleware);
 
 if (config.pageCacheStatus) {
@@ -91,18 +104,6 @@ app.use(flash());
 
 app.locals.maccms = config;
 app.locals.macUrl = macUrl;
-
-// 301 重定向: clean 模式下将 /index.php/* 永久重定向到 /* (不含 index.php)
-if (config.urlMode === 'clean') {
-  app.use((req, res, next) => {
-    if (req.path.startsWith('/index.php')) {
-      const cleanPath = stripIndexPhp(req.path);
-      const query = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
-      return res.redirect(301, cleanPath + query);
-    }
-    next();
-  });
-}
 
 app.use('/', routes);
 

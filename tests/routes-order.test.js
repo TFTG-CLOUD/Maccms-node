@@ -1,5 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const router = require('../routes');
 const frontRouter = require('../routes/front');
@@ -39,4 +41,14 @@ test('front router registers explicit rss sitemap routes before generic dispatch
     patterns.includes('/^\\/index\\.php\\/rss\\/index\\.xml\\/?$/i'),
     'front router should expose /index.php/rss/index.xml'
   );
+});
+
+test('clean-mode redirect middleware is registered before page cache middleware in app bootstrap', () => {
+  const appSource = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+  const redirectIndex = appSource.indexOf("if (config.urlMode === 'clean') {");
+  const pageCacheIndex = appSource.indexOf("if (config.pageCacheStatus) {");
+
+  assert.ok(redirectIndex >= 0, 'clean redirect middleware block should exist');
+  assert.ok(pageCacheIndex >= 0, 'page cache middleware block should exist');
+  assert.ok(redirectIndex < pageCacheIndex, 'clean redirect middleware should run before page cache middleware');
 });

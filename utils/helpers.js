@@ -72,7 +72,7 @@ function xorBuffer(buffer, secret) {
 }
 
 function getPlayerPayloadSecret() {
-  return String(process.env.PLAYER_PAYLOAD_SECRET || process.env.SESSION_SECRET || 'tanggui-player').trim();
+  return String(process.env.PLAYER_PAYLOAD_SECRET || 'tanggui-player').trim();
 }
 
 function encodePlayerPayload(payload) {

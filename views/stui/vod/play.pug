@@ -60,6 +60,9 @@ block extraHead
       text-align: center;
       z-index: 2;
     }
+    .player-shell__overlay.is-loading {
+      gap: 12px;
+    }
     .player-shell__button {
       display: inline-flex;
       align-items: center;
@@ -84,6 +87,36 @@ block extraHead
       font-size: 13px;
       line-height: 1.7;
     }
+    .player-shell__loading {
+      display: none;
+      align-items: center;
+      gap: 12px;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .player-shell__overlay.is-loading .player-shell__loading {
+      display: inline-flex;
+    }
+    .player-shell__overlay.is-loading .player-shell__tips {
+      color: rgba(255, 255, 255, 0.78);
+    }
+    .player-shell__spinner {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.28);
+      border-top-color: #ffffff;
+      animation: tg-player-spin 0.75s linear infinite;
+    }
+    @keyframes tg-player-spin {
+      from {
+        transform: rotate(0deg);
+      }
+      to {
+        transform: rotate(360deg);
+      }
+    }
     .player-shell__mount {
       z-index: 1;
       background: #000;
@@ -99,6 +132,9 @@ block extraHead
     .player-shell.is-ready .player-shell__overlay,
     .player-shell.is-ready .player-shell__poster {
       display: none;
+    }
+    .player-shell.is-loading .player-shell__poster {
+      display: block;
     }
     .player-shell__error {
       position: absolute;
@@ -316,6 +352,10 @@ block extraHead
         gap: 12px;
         padding: 18px;
       }
+      .player-shell__loading {
+        gap: 10px;
+        font-size: 13px;
+      }
       .player-shell__button {
         min-width: 138px;
         min-height: 44px;
@@ -398,6 +438,9 @@ block content
                   img.player-shell__poster(src=vod.pic alt=vod.name || '播放封面' loading="eager" decoding="async")
                 .player-shell__overlay
                   button.player-shell__button(type="button") 点击开始播放
+                  .player-shell__loading
+                    span.player-shell__spinner
+                    span 正在加载视频中
                   p.player-shell__tips 播放器将在点击后加载。
                 .player-shell__mount
             else
@@ -540,14 +583,41 @@ block content
 
       var mount = shell.querySelector('.player-shell__mount');
       var button = shell.querySelector('.player-shell__button');
+      var overlay = shell.querySelector('.player-shell__overlay');
       var playerPayload = shell.getAttribute('data-player-payload') || '';
       var playerPoster = shell.getAttribute('data-player-poster') || '';
       var mounted = false;
       var decodedPayload = null;
+      var loadingTimer = null;
+
+      function setLoadingState(loading) {
+        if (!overlay || !button) return;
+        if (loading) {
+          shell.classList.add('is-loading');
+          overlay.classList.add('is-loading');
+          button.style.display = 'none';
+          window.clearTimeout(loadingTimer);
+          loadingTimer = window.setTimeout(function() {
+            if (!shell.classList.contains('is-ready')) {
+              showPlayerError('视频加载时间较长，请稍候或点击重试。');
+            }
+          }, 15000);
+        } else {
+          shell.classList.remove('is-loading');
+          overlay.classList.remove('is-loading');
+          window.clearTimeout(loadingTimer);
+        }
+      }
+
+      function markReady() {
+        window.clearTimeout(loadingTimer);
+        shell.classList.remove('is-loading');
+        shell.classList.add('is-ready');
+      }
 
       function decodePlayerPayload(value) {
         if (!value) return null;
-        var secret = '#{(process.env.PLAYER_PAYLOAD_SECRET || process.env.SESSION_SECRET || "tanggui-player").replace(/\\/g, '\\\\').replace(/'/g, "\\'")}';
+        var secret = '#{(process.env.PLAYER_PAYLOAD_SECRET || "tanggui-player").replace(/\\/g, '\\\\').replace(/'/g, "\\'")}';
         var xorText = function(input, key) {
           if (!key) return input;
           var output = '';
@@ -567,6 +637,7 @@ block content
 
       function showPlayerError(message) {
         var existed = shell.querySelector('.player-shell__error');
+        setLoadingState(false);
         if (existed) {
           existed.innerText = message;
           return;
@@ -575,6 +646,11 @@ block content
         errorBox.className = 'player-shell__error';
         errorBox.innerText = message;
         shell.appendChild(errorBox);
+        if (button) {
+          button.style.display = 'inline-flex';
+          button.disabled = false;
+          button.innerText = '点击重新播放';
+        }
       }
 
       function buildIframe() {
@@ -583,6 +659,9 @@ block content
         iframe.setAttribute('allowfullscreen', 'allowfullscreen');
         iframe.setAttribute('scrolling', 'no');
         iframe.src = decodedPayload.url;
+        iframe.addEventListener('load', function() {
+          markReady();
+        }, { once: true });
         return iframe;
       }
 
@@ -612,7 +691,7 @@ block content
         }
         mounted = true;
         mount.innerHTML = '';
-        shell.classList.add('is-ready');
+        setLoadingState(true);
 
         if (decodedPayload.kind === 'iframe' || decodedPayload.kind === 'copyright') {
           mount.appendChild(buildIframe());
@@ -625,6 +704,9 @@ block content
         if (decodedPayload.hls) {
           if (video.canPlayType('application/vnd.apple.mpegurl')) {
             video.src = decodedPayload.url;
+            video.addEventListener('loadedmetadata', function() {
+              markReady();
+            }, { once: true });
             video.play && video.play().catch(function() {});
             return;
           }
@@ -633,6 +715,7 @@ block content
             hls.loadSource(decodedPayload.url);
             hls.attachMedia(video);
             hls.on(window.Hls.Events.MANIFEST_PARSED, function() {
+              markReady();
               video.play && video.play().catch(function() {});
             });
             hls.on(window.Hls.Events.ERROR, function(event, data) {
@@ -650,6 +733,9 @@ block content
         source.src = decodedPayload.url;
         source.type = decodedPayload.mime || 'video/mp4';
         video.appendChild(source);
+        video.addEventListener('loadedmetadata', function() {
+          markReady();
+        }, { once: true });
         video.load();
         video.play && video.play().catch(function() {});
       }

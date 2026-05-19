@@ -111,6 +111,7 @@ npm install
 PORT=3000
 MONGODB_URI=mongodb://127.0.0.1:27017/maccms_node
 SESSION_SECRET=replace-with-a-long-random-string
+PLAYER_PAYLOAD_SECRET=replace-with-another-random-string
 ADMIN_SESSION_MAX_AGE_MS=2592000000
 TRUST_PROXY=1
 
@@ -205,6 +206,7 @@ http://localhost:3000/admin/login
 | `REDIS_URL` | Redis 连接字符串；配置后搜索限流会改为多进程共享 |
 | `PORT` | 服务端口 |
 | `SESSION_SECRET` | Session 密钥 |
+| `PLAYER_PAYLOAD_SECRET` | 播放页前端 payload 混淆专用密钥；建议单独设置，不要与 `SESSION_SECRET` 共用 |
 | `ADMIN_SESSION_MAX_AGE_MS` | 后台登录态有效期，单位毫秒，默认 30 天 |
 | `TRUST_PROXY` | 反向代理层数或规则；走 Caddy/Nginx 时建议设置为 `1` |
 | `CRON_PRIMARY_ONLY` | `true` 时仅 PM2 主实例运行 cron，默认 `true` |
@@ -228,6 +230,15 @@ http://localhost:3000/admin/login
 | `PLAY_PAGE_CACHE_TTL_MS` | `vod/play` 页面缓存 TTL，默认 `60000` 毫秒 |
 | `PAGE_CACHE_MAX_ENTRIES` | 页面缓存最大条目数，默认 `500` |
 | `RUNTIME_CACHE_MAX_ENTRIES` | 运行时缓存最大条目数，默认 `300` |
+
+### `PLAYER_PAYLOAD_SECRET` 要不要设置
+
+建议设置。
+
+- 这个变量只用于播放页前端 payload 混淆
+- 它和 `SESSION_SECRET` 已经完全隔离，不会再互相兜底
+- 如果你不设置，系统会使用内置默认值，功能仍然可用
+- 但生产环境最好单独配置一个随机字符串，避免所有站点都使用同一默认混淆 key
 | `CACHE_CLEANUP_INTERVAL_MS` | 缓存清理周期，默认 `60000` 毫秒 |
 | `VOD_COUNT_CACHE_TTL_MS` | 分类页和筛选页计数缓存毫秒数，默认 `30000` |
 | `VOD_SHOW_LIST_CACHE_TTL_MS` | `vod/show` 列表结果缓存毫秒数，默认 `15000` |

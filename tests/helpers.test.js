@@ -78,3 +78,11 @@ test('encodePlayerPayload obscures player url payload and remains decodable', ()
   assert.equal(encoded.includes(payload.url), false);
   assert.deepEqual(decodePlayerPayload(encoded), payload);
 });
+
+test('player payload secret does not fall back to SESSION_SECRET', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const helpersSource = fs.readFileSync(path.join(__dirname, '..', 'utils', 'helpers.js'), 'utf8');
+
+  assert.equal(helpersSource.includes('PLAYER_PAYLOAD_SECRET || process.env.SESSION_SECRET'), false);
+});

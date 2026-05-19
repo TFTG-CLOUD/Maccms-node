@@ -51,6 +51,7 @@ test('stui play template defers media element creation until client-side interac
   assert.equal(play.includes('data-player-url='), false);
   assert.equal(play.includes('data-player-payload='), true);
   assert.equal(play.includes('decodePlayerPayload'), true);
+  assert.equal(play.includes('process.env.SESSION_SECRET'), false);
 });
 
 test('application serves legacy /img assets through an explicit static mount', () => {
